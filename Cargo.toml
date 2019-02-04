@@ -1,0 +1,24 @@
+[package]
+name = "l-compilator"
+version = "0.1.0"
+authors = ["Loïc Escales <loic.escales@kakos.fr>"]
+edition = "2018"
+build = "build.rs"
+description = """
+Un compilateur pour le langage l écrit en Rust.
+"""
+
+[build-dependencies]
+lalrpop = "0.16.3"
+
+[dependencies]
+logos = "0.9.7"
+lalrpop-util = "0.16.3"
+structopt = "0.2.14"
+failure = "0.1.5"
+failure_derive = "0.1.5"
+exitfailure = "0.5.1"
+
+[[bin]]
+name = "l-compilator"
+path = "src/main.rs"
