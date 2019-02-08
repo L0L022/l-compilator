@@ -5,8 +5,8 @@ extern crate failure_derive;
 
 extern crate structopt;
 
-mod lexer;
 mod ast;
+mod lexer;
 use lexer::Lexer;
 
 use failure::{Error, ResultExt};
@@ -47,11 +47,8 @@ impl App {
     pub fn run() -> Result<(), Error> {
         let opt = Opt::from_args();
 
-        let content = std::fs::read_to_string(&opt.source_file).with_context(
-            |_| {
-                format!("could not read file {:?}", opt.source_file)
-            },
-        )?;
+        let content = std::fs::read_to_string(&opt.source_file)
+            .with_context(|_| format!("could not read file {:?}", opt.source_file))?;
 
         if opt.lex {
             Self::print_lex(&content)?;

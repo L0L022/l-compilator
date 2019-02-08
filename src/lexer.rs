@@ -7,7 +7,9 @@ pub struct Lexer<'input> {
 
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
-        Lexer { lexer: LogosToken::lexer(input) }
+        Lexer {
+            lexer: LogosToken::lexer(input),
+        }
     }
 
     pub fn into_lex(self) -> Result<String, Error> {
@@ -30,7 +32,10 @@ impl<'input> Lexer<'input> {
 }
 
 #[derive(Debug, Fail)]
-#[fail(display = "lexical error occured at [{:?}] with this token: {}", range, token)]
+#[fail(
+    display = "lexical error occured at [{:?}] with this token: {}",
+    range, token
+)]
 pub struct LexicalError {
     token: String,
     range: std::ops::Range<usize>,
@@ -131,9 +136,9 @@ impl Token {
             IntegerType | ReadFunction | WriteFunction | Return | If | Then | Else | While | Do => {
                 "mot_clef"
             }
-            Comma | Semicolon | OpenParenthesis | CloseParenthesis | OpenCurlyBracket |
-            CloseCurlyBracket | OpenSquareBracket | CloseSquareBracket | Addition |
-            Subtraction | Multiplication | Division | LessThan | Equal | And | Or | Not => {
+            Comma | Semicolon | OpenParenthesis | CloseParenthesis | OpenCurlyBracket
+            | CloseCurlyBracket | OpenSquareBracket | CloseSquareBracket | Addition
+            | Subtraction | Multiplication | Division | LessThan | Equal | And | Or | Not => {
                 "symbole"
             }
         }
@@ -185,7 +190,8 @@ impl Token {
             And => "ET",
             Or => "OU",
             Not => "NON",
-        }.to_owned()
+        }
+        .to_owned()
     }
 }
 
@@ -369,8 +375,8 @@ mod tests {
 
     fn test(filename: &str) {
         let l_file = std::fs::read_to_string(format!("tests/resources/{}.l", filename)).unwrap();
-        let lex_file = std::fs::read_to_string(format!("tests/resources/{}.lex", filename))
-            .unwrap();
+        let lex_file =
+            std::fs::read_to_string(format!("tests/resources/{}.lex", filename)).unwrap();
 
         let generated_lex = Lexer::new(&l_file).into_lex().unwrap();
 
