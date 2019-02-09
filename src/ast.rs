@@ -1,8 +1,3 @@
-/// TODO : demander : n_instr *cree_n_instr_bloc(n_l_instr *liste);
-/// TODO : declaration de variables sur plusieurs lignes dans la déclaration de fonction
-/// TODO : fonction qui retourne rien ?
-/// TODO : confusion pour a = a;
-
 pub type Program = Vec<Statement>;
 
 #[derive(Debug)]
