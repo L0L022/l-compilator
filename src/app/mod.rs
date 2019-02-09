@@ -1,6 +1,6 @@
 mod opt;
 
-use crate::{lexer::Lexer, parser::Parser};
+use crate::{asynt::Asynt, lexer::Lexer, parser::Parser};
 use failure::{Error, ResultExt};
 use opt::Opt;
 use std::fs::read_to_string;
@@ -36,7 +36,7 @@ impl App {
         let l = Lexer::new(&content);
         let p = Parser::new();
 
-        print!("{:#?}", p.parse(l)?);
+        print!("{}", p.parse(l)?.to_asynt(0));
 
         Ok(())
     }

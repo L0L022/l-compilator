@@ -1,6 +1,6 @@
 use crate::ast::*;
 
-trait Asynt {
+pub trait Asynt {
     fn to_asynt(&self, indent: usize) -> String {
         if self.hide() {
             return String::new();
