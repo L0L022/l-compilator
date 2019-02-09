@@ -1,0 +1,189 @@
+grammar;
+
+use crate::lexer::Token;
+use crate::ast::*;
+use failure::Error;
+
+use crate::lexer::Token as T;
+
+pub Program : Program = <sts:Statements?> => sts.unwrap_or(Vec::new());
+
+Statements : Vec<Statement> = {
+    Statement => vec![<>],
+    <sts:Statements> <s:Statement> => {
+        let mut sts = sts;
+        sts.push(s);
+        sts
+    },
+    AtomicStatments,
+    <sts:Statements> <asts:AtomicStatments> => {
+        let mut sts = sts;
+        sts.extend(asts);
+        sts
+    },
+};
+
+Statement : Statement = {
+    // DclFunction
+    <i:Id> "(" <p:CommaMult<Scalar>> ")" <v:(<CommaMult<Scalar>> ";")?> "{" <is:Instruction*> "}" => Statement::DclFunction(i, p, v.unwrap_or(Vec::new()), is),
+};
+
+AtomicStatments : Vec<Statement> = {
+    // DclVariables
+    <v:CommaPlus<Variable>> ";" => v.into_iter().map(|e| Statement::DclVariable(e)).collect(),
+};
+
+Variable : Variable = {
+    Scalar => Variable::Scalar(<>),
+    Vector => Variable::Vector(<>),
+};
+
+Type : Type = {
+    IntegerType => Type::Integer,
+};
+
+Scalar : Scalar = Type Id => (<>);
+Vector : Vector = <t:Type> <i:Id> "[" <o:Number> "]" => (t, o, i);
+
+Instruction : Instruction = {
+    <LeftValue> "=" <Expression> ";" => Instruction::Affectation(<>),
+    <AtomicExpression> ";" => Instruction::Eval(<>),
+    Return <Expression> ";" => Instruction::Return(<>),
+    If <e:Expression> Then "{" <i1:Instruction*> "}" <i2:(Else "{" <Instruction*> "}")?> => Instruction::If(e, i1, i2.unwrap_or(Vec::new())),
+    While <Expression> Do "{" <Instruction*> "}" => Instruction::While(<>),
+    WriteFunction "(" <Expression> ")" ";" => Instruction::WriteFunction(<>),
+    ";" => Instruction::NOP,
+};
+
+Expression = ExpressionL1;
+
+ExpressionL1 = {
+    ExpressionL2,
+    <l:ExpressionL1> "|" <r:ExpressionL2> => Expression::BinaryOperation(BinaryOperator::Or, Box::new(l), Box::new(r)),
+};
+
+ExpressionL2 = {
+    ExpressionL3,
+    <l:ExpressionL2> "&" <r:ExpressionL3> => Expression::BinaryOperation(BinaryOperator::And, Box::new(l), Box::new(r)),
+};
+
+ExpressionL3 = {
+    ExpressionL4,
+    <l:ExpressionL3> <o:OperationExpressionL3> <r:ExpressionL4> => Expression::BinaryOperation(o, Box::new(l), Box::new(r)),
+};
+
+OperationExpressionL3 : BinaryOperator = {
+    "=" => BinaryOperator::Equal,
+    "<" => BinaryOperator::LessThan,
+};
+
+ExpressionL4 = {
+    ExpressionL5,
+    <l:ExpressionL4> <o:OperationExpressionL4> <r:ExpressionL5> => Expression::BinaryOperation(o, Box::new(l), Box::new(r)),
+};
+
+OperationExpressionL4 : BinaryOperator = {
+    "+" => BinaryOperator::Addidion,
+    "-" => BinaryOperator::Subtraction,
+};
+
+ExpressionL5 = {
+    ExpressionL6,
+    <l:ExpressionL5> <o:OperationExpressionL5> <r:ExpressionL6> => Expression::BinaryOperation(o, Box::new(l), Box::new(r)),
+};
+
+OperationExpressionL5 : BinaryOperator = {
+    "*" => BinaryOperator::Multiplication,
+    "/" => BinaryOperator::Division,
+};
+
+ExpressionL6 = {
+    ExpressionL7,
+    "!" <ExpressionL7> => Expression::UnaryOperation(UnaryOperator::Not, Box::new(<>)),
+};
+
+ExpressionL7 = {
+    AtomicExpression,
+    "(" <Expression> ")",
+};
+
+AtomicExpression : Expression = {
+    Number => Expression::Value(<>),
+    "-" <Number> => Expression::Value(-<>),
+    LeftValue => Expression::LeftValue(<>),
+    <Id> "(" <CommaMult<Expression>> ")" => Expression::CallFunction(<>),
+    ReadFunction "(" ")" => Expression::ReadFunction,
+};
+
+LeftValue : LeftValue = <i:Id> <o:("[" <Expression> "]")?> => match o {
+        Some(o) => LeftValue::VariableAt(i, Box::new(o)),
+        None => LeftValue::Variable(i),
+};
+
+CommaMult<T>: ::std::vec::Vec<T> = {
+    <v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+CommaPlus<T>: ::std::vec::Vec<T> = {
+    <v:(<T> ",")*> <e:T> => {
+        let mut v = v;
+        v.push(e);
+        v
+    }
+};
+
+extern {
+    type Location = usize;
+    type Error = Error;
+
+    enum Token {
+        Number => T::Number(<i32>),
+        Id => T::Id(<String>),
+        "," => T::Comma,
+        ";" => T::Semicolon,
+
+        // Types
+        IntegerType => T::IntegerType,
+
+        // Predefined functions
+        ReadFunction => T::ReadFunction,
+        WriteFunction => T::WriteFunction,
+
+        // Instructions
+
+        Return => T::Return,
+        If => T::If,
+        Then => T::Then,
+        Else => T::Else,
+        While => T::While,
+        Do => T::Do,
+
+        // Brackets
+
+        "(" => T::OpenParenthesis,
+        ")" => T::CloseParenthesis,
+        "{" => T::OpenCurlyBracket,
+        "}" => T::CloseCurlyBracket,
+        "[" => T::OpenSquareBracket,
+        "]" => T::CloseSquareBracket,
+
+        // Operators
+
+        "+" => T::Addition,
+        "-" => T::Subtraction,
+        "*" => T::Multiplication,
+        "/" => T::Division,
+        "<" => T::LessThan,
+        "=" => T::Equal,
+        "&" => T::And,
+        "|" => T::Or,
+        "!" => T::Not,
+    }
+}

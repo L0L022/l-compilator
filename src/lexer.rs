@@ -1,5 +1,6 @@
 use failure::Error;
 use logos::Logos;
+use std::fmt;
 
 pub struct Lexer<'input> {
     lexer: logos::Lexer<LogosToken, &'input str>,
@@ -124,6 +125,12 @@ pub enum Token {
     And,
     Or,
     Not,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl Token {

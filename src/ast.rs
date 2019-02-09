@@ -1,4 +1,24 @@
-pub type Programm = Vec<Statement>;
+/// TODO : demander : n_instr *cree_n_instr_bloc(n_l_instr *liste);
+/// TODO : declaration de variables sur plusieurs lignes dans la déclaration de fonction
+/// TODO : fonction qui retourne rien ?
+/// TODO : confusion pour a = a;
+
+pub type Program = Vec<Statement>;
+
+#[derive(Debug)]
+pub enum Statement {
+    DclVariable(Variable),
+    DclFunction(Id, Vec<Scalar>, Vec<Scalar>, Instructions),
+}
+
+#[derive(Debug)]
+pub enum Variable {
+    Scalar(Scalar),
+    Vector(Vector),
+}
+
+pub type Scalar = (Type, Id);
+pub type Vector = (Type, Number, Id);
 
 #[derive(Debug)]
 pub enum Type {
@@ -8,46 +28,35 @@ pub enum Type {
 pub type Id = String;
 pub type Number = i32;
 
-pub type Scalar = (Type, Id);
-pub type Vector = (Type, Number, Id);
-
-#[derive(Debug)]
-pub enum Variable {
-    Scalar(Scalar),
-    Vector(Vector),
-}
-
-#[derive(Debug)]
-pub enum Statement {
-    DclVariable(Vec<Variable>),
-    DclFunction(Id, Vec<Scalar>, Vec<Scalar>, Vec<Instruction>),
-}
+pub type Instructions = Vec<Instruction>;
 
 #[derive(Debug)]
 pub enum Instruction {
     Affectation(LeftValue, Expression),
     Eval(Expression),
-    Return(Option<Expression>),
-    If(Expression, Vec<Instruction>, Vec<Instruction>),
-    While(Expression, Vec<Instruction>),
-    ReadFunction(Vec<Expression>),
-    WriteFunction(Vec<Expression>),
+    Return(Expression),
+    If(Expression, Instructions, Instructions),
+    While(Expression, Instructions),
+    WriteFunction(Expression),
     NOP,
+}
+
+pub type Expressions = Vec<Expression>;
+
+#[derive(Debug)]
+pub enum Expression {
+    Value(Number),
+    LeftValue(LeftValue),
+    CallFunction(Id, Expressions),
+    ReadFunction,
+    UnaryOperation(UnaryOperator, Box<Expression>),
+    BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
 }
 
 #[derive(Debug)]
 pub enum LeftValue {
     Variable(Id),
     VariableAt(Id, Box<Expression>),
-}
-
-#[derive(Debug)]
-pub enum Expression {
-    Value(Number),
-    LeftValue(LeftValue),
-    CallFunction(Id, Vec<Expression>),
-    UnaryOperation(UnaryOperator, Box<Expression>),
-    BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
 }
 
 #[derive(Debug)]

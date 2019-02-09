@@ -3,11 +3,16 @@ extern crate failure;
 #[macro_use]
 extern crate failure_derive;
 
+#[macro_use]
+extern crate lalrpop_util;
+
 extern crate structopt;
 
 mod ast;
 mod lexer;
+mod parser;
 use lexer::Lexer;
+use parser::Parser;
 
 use failure::{Error, ResultExt};
 use std::path::PathBuf;
@@ -54,11 +59,24 @@ impl App {
             Self::print_lex(&content)?;
         }
 
+        if opt.ast {
+            Self::print_ast(&content)?;
+        }
+
         Ok(())
     }
 
     fn print_lex(content: &str) -> Result<(), Error> {
         print!("{}", Lexer::new(&content).into_lex()?);
+
+        Ok(())
+    }
+
+    fn print_ast(content: &str) -> Result<(), Error> {
+        let l = Lexer::new(&content);
+        let p = Parser::new();
+
+        print!("{:#?}", p.parse(l)?);
 
         Ok(())
     }
