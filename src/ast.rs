@@ -1,13 +1,13 @@
 #[derive(Debug)]
 pub struct Program(pub Vec<Statement>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     DclVariable(Variable),
     DclFunction(Id, Vec<Scalar>, Vec<Scalar>, Instructions),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Variable {
     Scalar(Scalar),
     Vector(Vector),
@@ -16,7 +16,7 @@ pub enum Variable {
 pub type Scalar = (Type, Id);
 pub type Vector = (Type, Number, Id);
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Type {
     Integer,
 }
@@ -26,7 +26,7 @@ pub type Number = i32;
 
 pub type Instructions = Vec<Instruction>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Instruction {
     Affectation(LeftValue, Expression),
     Eval(Expression),
@@ -39,7 +39,7 @@ pub enum Instruction {
 
 pub type Expressions = Vec<Expression>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Value(Number),
     LeftValue(LeftValue),
@@ -49,19 +49,19 @@ pub enum Expression {
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LeftValue {
     Variable(Id),
     VariableAt(Id, Box<Expression>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum UnaryOperator {
     // Boolean
     Not,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum BinaryOperator {
     // Arithmetic
     Addidion,

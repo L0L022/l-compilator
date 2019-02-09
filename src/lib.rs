@@ -7,6 +7,7 @@ extern crate structopt;
 
 mod app;
 mod ast;
+mod asynt;
 mod lexer;
 mod parser;
 mod token;
