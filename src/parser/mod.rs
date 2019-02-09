@@ -1,9 +1,14 @@
-lalrpop_mod!(grammar);
+lalrpop_mod!(
+    #[allow(unused_imports)]
+    #[allow(clippy::all)]
+    grammar,
+    "/parser/grammar.rs"
+);
 
 use crate::ast::Program;
-use crate::lexer::Lexer;
+use crate::lexer::Location;
 use crate::lexer::Spanned;
-use crate::lexer::Token;
+use crate::token::Token;
 use failure::Error;
 use grammar::ProgramParser;
 
@@ -15,7 +20,7 @@ pub struct Parser {
 #[fail(display = "parse error occured")]
 pub struct ParseError {
     #[cause]
-    error: lalrpop_util::ParseError<usize, Token, Error>,
+    error: lalrpop_util::ParseError<Location, Token, Error>,
 }
 
 impl Parser {
@@ -25,7 +30,7 @@ impl Parser {
         }
     }
 
-    pub fn parse<Tokens: IntoIterator<Item = Spanned<Token, usize, Error>>>(
+    pub fn parse<Tokens: IntoIterator<Item = Spanned<Token, Location, Error>>>(
         self,
         tokens: Tokens,
     ) -> Result<Program, Error> {

@@ -1,12 +1,12 @@
-grammar;
-
-use crate::lexer::Token;
 use crate::ast::*;
+use crate::lexer::Location;
+use crate::token::Token;
+use crate::token::Token as T;
 use failure::Error;
 
-use crate::lexer::Token as T;
+grammar;
 
-pub Program : Program = <sts:Statements?> => sts.unwrap_or(Vec::new());
+pub Program : Program = <sts:Statements?> => Program(sts.unwrap_or(Vec::new()));
 
 Statements : Vec<Statement> = {
     Statement => vec![<>],
@@ -140,7 +140,7 @@ CommaPlus<T>: ::std::vec::Vec<T> = {
 };
 
 extern {
-    type Location = usize;
+    type Location = Location;
     type Error = Error;
 
     enum Token {

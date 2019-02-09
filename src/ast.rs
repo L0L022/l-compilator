@@ -1,4 +1,5 @@
-pub type Program = Vec<Statement>;
+#[derive(Debug)]
+pub struct Program(pub Vec<Statement>);
 
 #[derive(Debug)]
 pub enum Statement {
