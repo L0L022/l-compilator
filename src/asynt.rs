@@ -7,7 +7,7 @@ pub trait Asynt {
         }
 
         if !self.with_tag() {
-            return format!("{c}", c = self.content(indent));
+            return self.content(indent);
         }
 
         let spaces = " ".repeat(indent);
@@ -80,8 +80,8 @@ impl Asynt for [Statement] {
 
     fn content(&self, indent: usize) -> String {
         match self.len() {
-            0 => "".to_owned(),
-            1 => format!("{}", self[0].to_asynt(indent)),
+            0 => String::new(),
+            1 => self[0].to_asynt(indent),
             _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
         }
     }
@@ -132,8 +132,8 @@ impl Asynt for [Scalar] {
 
     fn content(&self, indent: usize) -> String {
         match self.len() {
-            0 => "".to_owned(),
-            1 => format!("{}", self[0].to_asynt(indent)),
+            0 => String::new(),
+            1 => self[0].to_asynt(indent),
             _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
         }
     }
@@ -163,7 +163,7 @@ impl Asynt for Scalar {
         true
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, _indent: usize) -> String {
         self.1.clone()
     }
 }
@@ -177,7 +177,7 @@ impl Asynt for Vector {
         true
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, _indent: usize) -> String {
         format!("{}[{}]", self.2, self.1)
     }
 }
@@ -193,8 +193,8 @@ impl Asynt for [Instruction] {
 
     fn content(&self, indent: usize) -> String {
         match self.len() {
-            0 => "".to_owned(),
-            1 => format!("{}", self[0].to_asynt(indent)),
+            0 => String::new(),
+            1 => self[0].to_asynt(indent),
             _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
         }
     }
@@ -242,7 +242,7 @@ impl Asynt for LeftValue {
         }
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, _indent: usize) -> String {
         use LeftValue::*;
 
         match self {
@@ -263,8 +263,8 @@ impl Asynt for [Expression] {
 
     fn content(&self, indent: usize) -> String {
         match self.len() {
-            0 => "".to_owned(),
-            1 => format!("{}", self[0].to_asynt(indent)),
+            0 => String::new(),
+            1 => self[0].to_asynt(indent),
             _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
         }
     }
