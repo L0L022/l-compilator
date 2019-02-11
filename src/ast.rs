@@ -29,7 +29,7 @@ pub type Instructions = Vec<Instruction>;
 #[derive(Debug, Clone)]
 pub enum Instruction {
     Affectation(LeftValue, Expression),
-    Eval(Expression),
+    CallFunction(CallFunction),
     Return(Expression),
     If(Expression, Instructions, Instructions),
     While(Expression, Instructions),
@@ -43,7 +43,7 @@ pub type Expressions = Vec<Expression>;
 pub enum Expression {
     Value(Number),
     LeftValue(LeftValue),
-    CallFunction(Id, Expressions),
+    CallFunction(CallFunction),
     ReadFunction,
     UnaryOperation(UnaryOperator, Box<Expression>),
     BinaryOperation(BinaryOperator, Box<Expression>, Box<Expression>),
@@ -54,6 +54,8 @@ pub enum LeftValue {
     Variable(Id),
     VariableAt(Id, Box<Expression>),
 }
+
+pub type CallFunction = (Id, Expressions);
 
 #[derive(Debug, Copy, Clone)]
 pub enum UnaryOperator {

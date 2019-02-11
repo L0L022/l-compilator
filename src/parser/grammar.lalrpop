@@ -51,7 +51,7 @@ Instruction : Instruction = {
     If <e:Expression> Then "{" <i1:Instruction*> "}" <i2:(Else "{" <Instruction*> "}")?> => Instruction::If(e, i1, i2.unwrap_or(Vec::new())),
     While <Expression> Do "{" <Instruction*> "}" => Instruction::While(<>),
     WriteFunction "(" <Expression> ")" ";" => Instruction::WriteFunction(<>),
-    <FunctionCall> ";" => Instruction::Eval(<>),
+    <CallFunction> ";" => Instruction::CallFunction(<>),
     ";" => Instruction::NOP,
 };
 
@@ -111,7 +111,8 @@ AtomicExpression : Expression = {
     Number => Expression::Value(<>),
     "-" <Number> => Expression::Value(-<>),
     LeftValue => Expression::LeftValue(<>),
-    FunctionCall,
+    CallFunction => Expression::CallFunction(<>),
+    ReadFunction "(" ")" => Expression::ReadFunction,
 };
 
 LeftValue : LeftValue = <i:Id> <o:("[" <Expression> "]")?> => match o {
@@ -119,10 +120,7 @@ LeftValue : LeftValue = <i:Id> <o:("[" <Expression> "]")?> => match o {
         None => LeftValue::Variable(i),
 };
 
-FunctionCall : Expression = {
-    <Id> "(" <CommaMult<Expression>> ")" => Expression::CallFunction(<>),
-    ReadFunction "(" ")" => Expression::ReadFunction,
-};
+CallFunction : CallFunction = <Id> "(" <CommaMult<Expression>> ")" => (<>);
 
 CommaMult<T>: ::std::vec::Vec<T> = {
     <v:(<T> ",")*> <e:T?> => match e {

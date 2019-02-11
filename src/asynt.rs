@@ -206,7 +206,12 @@ impl Asynt for Instruction {
 
         match self {
             Affectation(..) => "instr_affect",
-            _ => "INSTRUCTION",
+            CallFunction(..) => "instr_appel",
+            Return(..) => "instr_retour",
+            If(..) => "instr_si",
+            While(..) => "instr_tantque",
+            WriteFunction(..) => "instr_ecrire",
+            NOP => "INSTRUCTION",
         }
     }
 
@@ -215,6 +220,11 @@ impl Asynt for Instruction {
 
         match self {
             Affectation(lv, e) => format!("{}{}", lv.to_asynt(indent), e.to_asynt(indent)),
+            CallFunction(e) => e.to_asynt(indent),
+            Return(e) => e.to_asynt(indent),
+            If(e, i1, i2) => format!("{}{}{}", e.to_asynt(indent), i1.to_asynt(indent), i2.to_asynt(indent)),
+            While(e, i) => format!("{}{}", e.to_asynt(indent), i.to_asynt(indent)),
+            WriteFunction(e) => e.to_asynt(indent),
             _ => {
                 let spaces = " ".repeat(indent);
                 format!("{}{:#?}\n", spaces, self)
@@ -252,6 +262,19 @@ impl Asynt for LeftValue {
     }
 }
 
+impl Asynt for CallFunction {
+    fn name(&self) -> &'static str {
+        "appel"
+    }
+
+    fn content(&self, indent: usize) -> String {
+        let spaces = " ".repeat(indent);
+        let (id, args) = self;
+
+        format!("{}{}\n{}", spaces, id, args.to_asynt(indent))
+    }
+}
+
 impl Asynt for [Expression] {
     fn name(&self) -> &'static str {
         "l_exp"
@@ -276,6 +299,11 @@ impl Asynt for Expression {
 
         match self {
             Value(..) => "intExp",
+            LeftValue(..) => "varExp",
+            CallFunction(..) => "appelExp",
+            ReadFunction => "lireExp",
+            UnaryOperation(..) => "opExp",
+            BinaryOperation(..) => "opExp",
             _ => "EXPRESSION",
         }
     }
@@ -289,16 +317,72 @@ impl Asynt for Expression {
         }
     }
 
+    fn with_tag(&self) -> bool {
+        use Expression::*;
+
+        match self {
+            _ => true,
+        }
+    }
+
     fn content(&self, indent: usize) -> String {
         use Expression::*;
 
         match self {
             Value(v) => format!("{}", v),
+            LeftValue(lv) => lv.to_asynt(indent),
+            CallFunction(cf) => cf.to_asynt(indent),
+            ReadFunction => String::new(),
+            UnaryOperation(o, e) => format!("{}{}", o.to_asynt(indent), e.to_asynt(indent)),
+            BinaryOperation(o, e1, e2) => format!("{}{}{}", o.to_asynt(indent), e1.to_asynt(indent), e2.to_asynt(indent)),
             _ => {
                 let spaces = " ".repeat(indent);
                 format!("{}{:#?}\n", spaces, self)
             }
         }
+    }
+}
+
+impl Asynt for UnaryOperator {
+    fn with_tag(&self) -> bool {
+        false
+    }
+
+    fn content(&self, indent: usize) -> String {
+        use UnaryOperator::*;
+
+        let spaces = " ".repeat(indent);
+
+        let op = match self {
+            Not => "non",
+        };
+
+        format!("{}{}\n", spaces, op)
+    }
+}
+
+impl Asynt for BinaryOperator {
+    fn with_tag(&self) -> bool {
+        false
+    }
+
+    fn content(&self, indent: usize) -> String {
+        use BinaryOperator::*;
+
+        let spaces = " ".repeat(indent);
+
+        let op = match self {
+            Addidion => "plus",
+            Subtraction => "moins",
+            Multiplication => "fois",
+            Division => "divise",
+            And => "et",
+            Or => "ou",
+            Equal => "egal",
+            LessThan => "inf",
+        };
+
+        format!("{}{}\n", spaces, op)
     }
 }
 
