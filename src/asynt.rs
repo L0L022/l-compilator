@@ -211,7 +211,16 @@ impl Asynt for Instruction {
             If(..) => "instr_si",
             While(..) => "instr_tantque",
             WriteFunction(..) => "instr_ecrire",
-            NOP => "INSTRUCTION",
+            NOP => unreachable!(),
+        }
+    }
+
+    fn hide(&self) -> bool {
+        use Instruction::*;
+
+        match self {
+            NOP => true,
+            _ => false,
         }
     }
 
@@ -222,13 +231,15 @@ impl Asynt for Instruction {
             Affectation(lv, e) => format!("{}{}", lv.to_asynt(indent), e.to_asynt(indent)),
             CallFunction(e) => e.to_asynt(indent),
             Return(e) => e.to_asynt(indent),
-            If(e, i1, i2) => format!("{}{}{}", e.to_asynt(indent), i1.to_asynt(indent), i2.to_asynt(indent)),
+            If(e, i1, i2) => format!(
+                "{}{}{}",
+                e.to_asynt(indent),
+                i1.to_asynt(indent),
+                i2.to_asynt(indent)
+            ),
             While(e, i) => format!("{}{}", e.to_asynt(indent), i.to_asynt(indent)),
             WriteFunction(e) => e.to_asynt(indent),
-            _ => {
-                let spaces = " ".repeat(indent);
-                format!("{}{:#?}\n", spaces, self)
-            }
+            NOP => unreachable!(),
         }
     }
 }
@@ -252,12 +263,21 @@ impl Asynt for LeftValue {
         }
     }
 
-    fn content(&self, _indent: usize) -> String {
+    fn content(&self, indent: usize) -> String {
         use LeftValue::*;
 
         match self {
             Variable(id) => id.clone(),
-            VariableAt(..) => format!("{:?}", self),
+            VariableAt(id, e) => {
+                let spaces = " ".repeat(indent);
+
+                format!(
+                    "{}<var_base_tableau>{}</var_base_tableau>\n{}",
+                    spaces,
+                    id,
+                    e.to_asynt(indent),
+                )
+            }
         }
     }
 }
@@ -304,7 +324,6 @@ impl Asynt for Expression {
             ReadFunction => "lireExp",
             UnaryOperation(..) => "opExp",
             BinaryOperation(..) => "opExp",
-            _ => "EXPRESSION",
         }
     }
 
@@ -317,14 +336,6 @@ impl Asynt for Expression {
         }
     }
 
-    fn with_tag(&self) -> bool {
-        use Expression::*;
-
-        match self {
-            _ => true,
-        }
-    }
-
     fn content(&self, indent: usize) -> String {
         use Expression::*;
 
@@ -334,11 +345,12 @@ impl Asynt for Expression {
             CallFunction(cf) => cf.to_asynt(indent),
             ReadFunction => String::new(),
             UnaryOperation(o, e) => format!("{}{}", o.to_asynt(indent), e.to_asynt(indent)),
-            BinaryOperation(o, e1, e2) => format!("{}{}{}", o.to_asynt(indent), e1.to_asynt(indent), e2.to_asynt(indent)),
-            _ => {
-                let spaces = " ".repeat(indent);
-                format!("{}{:#?}\n", spaces, self)
-            }
+            BinaryOperation(o, e1, e2) => format!(
+                "{}{}{}",
+                o.to_asynt(indent),
+                e1.to_asynt(indent),
+                e2.to_asynt(indent)
+            ),
         }
     }
 }
@@ -392,13 +404,6 @@ mod tests {
     use crate::lexer::Lexer;
     use crate::parser::Parser;
     use std::fs::read_to_string;
-
-    #[test]
-    fn simple_test() {
-        let instrs = vec![Instruction::NOP, Instruction::NOP, Instruction::NOP];
-        print!("{}", instrs.to_asynt(0));
-        assert!(false);
-    }
 
     #[test]
     fn affect() {
