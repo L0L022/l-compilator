@@ -15,7 +15,7 @@
         <l_instr>
           <instr_tantque>
             <opExp>
-              et
+              inf
               <varExp>
                 <var_simple>$i</var_simple>
               </varExp>

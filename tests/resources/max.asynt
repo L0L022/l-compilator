@@ -10,7 +10,7 @@
       <l_instr>
         <instr_si>
           <opExp>
-            et
+            inf
             <varExp>
               <var_simple>$a</var_simple>
             </varExp>
@@ -58,7 +58,7 @@
             <l_instr>
               <instr_si>
                 <opExp>
-                  inf
+                  egal
                   <appelExp>
                     <appel>
                       max

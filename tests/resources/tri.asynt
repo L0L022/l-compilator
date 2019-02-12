@@ -111,7 +111,7 @@
           <l_instr>
             <instr_tantque>
               <opExp>
-                et
+                inf
                 <varExp>
                   <var_simple>$i</var_simple>
                 </varExp>
@@ -237,7 +237,7 @@
                 <l_instr>
                   <instr_tantque>
                     <opExp>
-                      inf
+                      egal
                       <varExp>
                         <var_simple>$echange</var_simple>
                       </varExp>
@@ -256,7 +256,7 @@
                         <l_instr>
                           <instr_tantque>
                             <opExp>
-                              et
+                              inf
                               <varExp>
                                 <var_simple>$j</var_simple>
                               </varExp>
@@ -271,7 +271,7 @@
                             <l_instr>
                               <instr_si>
                                 <opExp>
-                                  et
+                                  inf
                                   <varExp>
                                     <var_indicee>
                                       <var_base_tableau>$tab</var_base_tableau>
