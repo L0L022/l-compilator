@@ -300,14 +300,9 @@ impl Asynt for [Expression] {
         "l_exp"
     }
 
-    fn hide(&self) -> bool {
-        self.is_empty()
-    }
-
     fn content(&self, indent: usize) -> String {
         match self.len() {
             0 => String::new(),
-            1 => self[0].to_asynt(indent),
             _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
         }
     }
