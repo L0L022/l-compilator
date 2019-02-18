@@ -1,57 +1,208 @@
-
 variables:
-  # Container(OCI) images for various distros and architectures and compilers
+  CRATE_NAME:                            l-compilator
+  BIN_NAME:                              l-compilator
+  CROSS_VERSION:                         v0.1.14
 
-  RUSTFMT_NIGHTLY:           "registry.gitlab.com/alatiera/rustfmt-oci-image/rustfmt:nightly"
-  CLIPPY_NIGHTLY:            "registry.gitlab.gnome.org/gnome/librsvg-oci-images/clippy:nightly"
+  # Container(OCI) images for various distros and architectures and compilers
+  RUSTFMT_NIGHTLY:                       "registry.gitlab.com/alatiera/rustfmt-oci-image/rustfmt:nightly"
+  CLIPPY_NIGHTLY:                        "registry.gitlab.gnome.org/gnome/librsvg-oci-images/clippy:nightly"
 
 
 stages:
+  - build
   - test
   - lint
+  - deploy
 
-# Use cargo to test the project
-test:cargo:
-  image: "rust:latest"
-  stage: test
 
+.job_template:                           &japaric_image
+  image:                                 "japaric/$TARGET:$CROSS_VERSION"
+  before_script:
+   - apt-get update -qq || ( sed -i -re 's/([a-z]{2}\.)?archive.ubuntu.com|security.ubuntu.com/old-releases.ubuntu.com/g' /etc/apt/sources.list && apt-get update -qq )
+   - chmod u+x ci/install_rust.sh && source ./ci/install_rust.sh
+
+# Use cargo to build the project
+.job_template:                           &build
+  <<:                                    *japaric_image
+  stage:                                 build
   script:
-  - mkdir -p .cargo_cache
-  
-  # Only stuff inside the repo directory can be cached
-  # Override the CARGO_HOME variable to force it location
-  - export CARGO_HOME="${PWD}/.cargo_cache"
+  - cargo build --target $TARGET
+  - cargo build --target $TARGET --release
+  artifacts:
+    expire_in:                           1h
+    paths:
+      - target/$TARGET/
+      - .rustup_cache/
+      - .cargo_cache/
 
-  - rustc --version && cargo --version      # Print version info for debugging
-  - cargo test --all --verbose --release
 
+.job_template:                           &master_build
+  <<:                                    *build
   cache:
     # JOB_NAME - Each job will have it's own cache
     # COMMIT_REF_SLUG = Lowercase name of the branch
     # ^ Keep diffrerent caches for each branch
-    key: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    key:                                 "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     paths:
-      - target/
+      - target/$TARGET/
+      - .rustup_cache/
       - .cargo_cache/
+  only:
+    - master
+
+.job_template:                           &release_build
+  <<:                                    *build
+  only:
+    - tags
+    # release tags
+    - /^v\d+\.\d+\.\d+.*$/
+
+
+release_build:i686-unknown-linux-gnu:
+  <<:                                    *release_build
+  variables:
+    TARGET:                              i686-unknown-linux-gnu
+
+release_build:x86_64-unknown-linux-gnu:
+  <<:                                    *release_build
+  variables:
+    TARGET:                              x86_64-unknown-linux-gnu
+
+release_build:i686-pc-windows-gnu:
+  <<:                                    *release_build
+  variables:
+    TARGET:                              i686-pc-windows-gnu
+
+release_build:x86_64-pc-windows-gnu:
+  <<:                                    *release_build
+  variables:
+    TARGET:                              x86_64-pc-windows-gnu
+
+
+master_build:i686-unknown-linux-gnu:
+  <<:                                    *master_build
+  variables:
+    TARGET:                              i686-unknown-linux-gnu
+
+master_build:x86_64-unknown-linux-gnu:
+  <<:                                    *master_build
+  variables:
+    TARGET:                              x86_64-unknown-linux-gnu
+
+master_build:i686-pc-windows-gnu:
+  <<:                                    *master_build
+  variables:
+    TARGET:                              i686-pc-windows-gnu
+
+master_build:x86_64-pc-windows-gnu:
+  <<:                                    *master_build
+  variables:
+    TARGET:                              x86_64-pc-windows-gnu
+
+
+# Use cargo to test the project
+.job_template:                           &test
+  <<:                                    *japaric_image
+  stage:                                 test
+  script:
+  - cargo test --target $TARGET --all --verbose
+  - cargo test --target $TARGET --all --verbose --release
+  - cargo run --target $TARGET
+  - cargo run --target $TARGET --release
+
+
+test:i686-unknown-linux-gnu:
+  <<:                                    *test
+  variables:
+    TARGET:                              i686-unknown-linux-gnu
+  dependencies:
+  - release_build:i686-unknown-linux-gnu
+  - master_build:i686-unknown-linux-gnu
+
+test:x86_64-unknown-linux-gnu:
+  <<:                                    *test
+  variables:
+    TARGET:                              x86_64-unknown-linux-gnu
+  dependencies:
+  - release_build:x86_64-unknown-linux-gnu
+  - master_build:x86_64-unknown-linux-gnu
+
+test:i686-pc-windows-gnu:
+  <<:                                    *test
+  variables:
+    TARGET:                              i686-pc-windows-gnu
+  dependencies:
+  - release_build:i686-pc-windows-gnu
+  - master_build:i686-pc-windows-gnu
+
+test:x86_64-pc-windows-gnu:
+  <<:                                    *test
+  variables:
+    TARGET:                              x86_64-pc-windows-gnu
+  dependencies:
+  - release_build:x86_64-pc-windows-gnu
+  - master_build:x86_64-pc-windows-gnu
 
 
 # Configure and run rustfmt on nightly
 # Exits and builds fails on bad format
 rustfmt:
-  image: $RUSTFMT_NIGHTLY
-  stage: lint
+  image:                                 $RUSTFMT_NIGHTLY
+  stage:                                 lint
   script:
     - rustc --version && cargo --version
     - cargo fmt --version
     - cargo fmt --all -- --check
+  dependencies:                          []
 
 # Configure and run clippy on nightly
 # Only fails on errors atm.
 clippy:
-  image: $CLIPPY_NIGHTLY
-  stage: lint
+  image:                                 $CLIPPY_NIGHTLY
+  stage:                                 lint
   script:
     - rustc --version && cargo --version
     - cargo install clippy --force
     - cargo clippy --all
-  when: manual
+  when:                                  manual
+  dependencies:                          []
+
+
+.job_template:                           &deploy
+  <<:                                    *japaric_image
+  stage:                                 deploy
+  script:
+  - chmod u+x ci/deploy.sh && ./ci/deploy.sh
+  only:
+    - tags
+    # release tags
+    - /^v\d+\.\d+\.\d+.*$/
+
+
+deploy:i686-unknown-linux-gnu:
+  <<:                                    *deploy
+  variables:
+    TARGET:                              i686-unknown-linux-gnu
+  dependencies:
+  - release_build:i686-unknown-linux-gnu
+
+deploy:x86_64-unknown-linux-gnu:
+  <<:                                    *deploy
+  variables:
+    TARGET:                              x86_64-unknown-linux-gnu
+  dependencies:
+  - release_build:x86_64-unknown-linux-gnu
+
+deploy:i686-pc-windows-gnu:
+  <<:                                    *deploy
+  variables:
+    TARGET:                              i686-pc-windows-gnu
+  dependencies:
+  - release_build:i686-pc-windows-gnu
+
+deploy:x86_64-pc-windows-gnu:
+  <<:                                    *deploy
+  variables:
+    TARGET:                              x86_64-pc-windows-gnu
+  dependencies:
+  - release_build:x86_64-pc-windows-gnu
