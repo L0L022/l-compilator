@@ -107,8 +107,8 @@ master_build:x86_64-pc-windows-gnu:
   script:
   - cargo test --target $TARGET --all --verbose
   - cargo test --target $TARGET --all --verbose --release
-  - cargo run --target $TARGET
-  - cargo run --target $TARGET --release
+  - cargo run --target $TARGET -- --version
+  - cargo run --target $TARGET --release -- --version
 
 
 test:i686-unknown-linux-gnu:
