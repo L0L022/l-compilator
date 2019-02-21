@@ -1,0 +1,9 @@
+main	identificateur	main
+(	symbole	PARENTHESE_OUVRANTE
+)	symbole	PARENTHESE_FERMANTE
+{	symbole	ACCOLADE_OUVRANTE
+lire	mot_clef	lire
+(	symbole	PARENTHESE_OUVRANTE
+)	symbole	PARENTHESE_FERMANTE
+;	symbole	POINT_VIRGULE
+}	symbole	ACCOLADE_FERMANTE

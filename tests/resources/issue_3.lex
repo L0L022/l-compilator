@@ -1,0 +1,11 @@
+main	identificateur	main
+(	symbole	PARENTHESE_OUVRANTE
+)	symbole	PARENTHESE_FERMANTE
+entier	mot_clef	entier
+a	identificateur	a
+;	symbole	POINT_VIRGULE
+entier	mot_clef	entier
+b	identificateur	b
+;	symbole	POINT_VIRGULE
+{	symbole	ACCOLADE_OUVRANTE
+}	symbole	ACCOLADE_FERMANTE

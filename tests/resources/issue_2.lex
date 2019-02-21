@@ -1,0 +1,7 @@
+main	identificateur	main
+(	symbole	PARENTHESE_OUVRANTE
+)	symbole	PARENTHESE_FERMANTE
+{	symbole	ACCOLADE_OUVRANTE
+{	symbole	ACCOLADE_OUVRANTE
+}	symbole	ACCOLADE_FERMANTE
+}	symbole	ACCOLADE_FERMANTE
