@@ -47,8 +47,10 @@ stages:
       - target/
       - .rustup_cache/
       - .cargo_cache/
-  only:
-    - master
+  except:
+    - tags
+    # release tags
+    - /^v\d+\.\d+\.\d+.*$/
 
 .job_template:                           &release_build
   <<:                                    *build
