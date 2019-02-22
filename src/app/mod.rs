@@ -36,7 +36,7 @@ impl App {
         let l = Lexer::new(&content);
         let p = Parser::new();
 
-        print!("{}", p.parse(l)?.to_asynt(0));
+        p.parse(l)?.to_asynt(&mut std::io::stdout().lock(), 0)?;
 
         Ok(())
     }

@@ -1,33 +1,28 @@
 use crate::ast::*;
+use std::io::{Result, Write};
 
 pub trait Asynt {
-    fn to_asynt(&self, indent: usize) -> String {
+    fn to_asynt(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         if self.hide() {
-            return String::new();
+            return Ok(());
         }
 
         if !self.with_tag() {
-            return self.content(indent);
+            return self.content(f, indent);
         }
 
         let spaces = " ".repeat(indent);
         let name = self.name();
 
-        if self.one_line() {
-            format!(
-                "{s}<{n}>{c}</{n}>\n",
-                s = spaces,
-                n = name,
-                c = self.content(indent + 2)
-            )
-        } else {
-            format!(
-                "{s}<{n}>\n{c}{s}</{n}>\n",
-                s = spaces,
-                n = name,
-                c = self.content(indent + 2)
-            )
+        write!(f, "{}<{}>", spaces, name)?;
+        if !self.one_line() {
+            write!(f, "\n")?;
         }
+        self.content(f, indent + 2)?;
+        if !self.one_line() {
+            write!(f, "{}", spaces)?;
+        }
+        write!(f, "</{}>\n", name)
     }
     fn name(&self) -> &'static str {
         ""
@@ -41,14 +36,14 @@ pub trait Asynt {
     fn with_tag(&self) -> bool {
         true
     }
-    fn content(&self, indent: usize) -> String;
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()>;
 }
 
 impl Asynt for Program {
     fn name(&self) -> &'static str {
         "prog"
     }
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use Statement::*;
 
         let var: Vec<Statement> = self
@@ -65,7 +60,8 @@ impl Asynt for Program {
             .cloned()
             .collect();
 
-        format!("{}{}", var.to_asynt(indent), func.to_asynt(indent))
+        var.to_asynt(f, indent)?;
+        func.to_asynt(f, indent)
     }
 }
 
@@ -78,11 +74,14 @@ impl Asynt for [Statement] {
         self.is_empty()
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         match self.len() {
-            0 => String::new(),
-            1 => self[0].to_asynt(indent),
-            _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
+            0 => Ok(()),
+            1 => self[0].to_asynt(f, indent),
+            _ => {
+                self[0].to_asynt(f, indent)?;
+                self[1..].to_asynt(f, indent)
+            }
         }
     }
 }
@@ -106,17 +105,16 @@ impl Asynt for Statement {
         }
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use Statement::*;
 
         match self {
-            DclVariable(v) => v.to_asynt(indent),
-            DclFunction(_, p, v, i) => format!(
-                "{}{}{}",
-                p.to_asynt(indent),
-                v.to_asynt(indent),
-                i.to_asynt(indent)
-            ),
+            DclVariable(v) => v.to_asynt(f, indent),
+            DclFunction(_, p, v, i) => {
+                p.to_asynt(f, indent)?;
+                v.to_asynt(f, indent)?;
+                i.to_asynt(f, indent)
+            }
         }
     }
 }
@@ -130,11 +128,14 @@ impl Asynt for [Scalar] {
         self.is_empty()
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         match self.len() {
-            0 => String::new(),
-            1 => self[0].to_asynt(indent),
-            _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
+            0 => Ok(()),
+            1 => self[0].to_asynt(f, indent),
+            _ => {
+                self[0].to_asynt(f, indent)?;
+                self[1..].to_asynt(f, indent)
+            }
         }
     }
 }
@@ -144,12 +145,12 @@ impl Asynt for Variable {
         false
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use Variable::*;
 
         match self {
-            Scalar(s) => s.to_asynt(indent),
-            Vector(v) => v.to_asynt(indent),
+            Scalar(s) => s.to_asynt(f, indent),
+            Vector(v) => v.to_asynt(f, indent),
         }
     }
 }
@@ -163,8 +164,8 @@ impl Asynt for Scalar {
         true
     }
 
-    fn content(&self, _indent: usize) -> String {
-        self.1.clone()
+    fn content(&self, f: &mut dyn Write, _indent: usize) -> Result<()> {
+        write!(f, "{}", self.1)
     }
 }
 
@@ -177,8 +178,8 @@ impl Asynt for Vector {
         true
     }
 
-    fn content(&self, _indent: usize) -> String {
-        format!("{}[{}]", self.2, self.1)
+    fn content(&self, f: &mut dyn Write, _indent: usize) -> Result<()> {
+        write!(f, "{}[{}]", self.2, self.1)
     }
 }
 
@@ -191,11 +192,14 @@ impl Asynt for [Instruction] {
         self.is_empty()
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         match self.len() {
-            0 => String::new(),
-            1 => self[0].to_asynt(indent),
-            _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
+            0 => Ok(()),
+            1 => self[0].to_asynt(f, indent),
+            _ => {
+                self[0].to_asynt(f, indent)?;
+                self[1..].to_asynt(f, indent)
+            }
         }
     }
 }
@@ -224,21 +228,26 @@ impl Asynt for Instruction {
         }
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use Instruction::*;
 
         match self {
-            Affectation(lv, e) => format!("{}{}", lv.to_asynt(indent), e.to_asynt(indent)),
-            CallFunction(e) => e.to_asynt(indent),
-            Return(e) => e.to_asynt(indent),
-            If(e, i1, i2) => format!(
-                "{}{}{}",
-                e.to_asynt(indent),
-                i1.to_asynt(indent),
-                i2.to_asynt(indent)
-            ),
-            While(e, i) => format!("{}{}", e.to_asynt(indent), i.to_asynt(indent)),
-            WriteFunction(e) => e.to_asynt(indent),
+            Affectation(lv, e) => {
+                lv.to_asynt(f, indent)?;
+                e.to_asynt(f, indent)
+            }
+            CallFunction(e) => e.to_asynt(f, indent),
+            Return(e) => e.to_asynt(f, indent),
+            If(e, i1, i2) => {
+                e.to_asynt(f, indent)?;
+                i1.to_asynt(f, indent)?;
+                i2.to_asynt(f, indent)
+            }
+            While(e, i) => {
+                e.to_asynt(f, indent)?;
+                i.to_asynt(f, indent)
+            }
+            WriteFunction(e) => e.to_asynt(f, indent),
             NOP => unreachable!(),
         }
     }
@@ -263,20 +272,16 @@ impl Asynt for LeftValue {
         }
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use LeftValue::*;
 
         match self {
-            Variable(id) => id.clone(),
+            Variable(id) => write!(f, "{}", id),
             VariableAt(id, e) => {
                 let spaces = " ".repeat(indent);
 
-                format!(
-                    "{}<var_base_tableau>{}</var_base_tableau>\n{}",
-                    spaces,
-                    id,
-                    e.to_asynt(indent),
-                )
+                write!(f, "{}<var_base_tableau>{}</var_base_tableau>\n", spaces, id,)?;
+                e.to_asynt(f, indent)
             }
         }
     }
@@ -287,11 +292,12 @@ impl Asynt for CallFunction {
         "appel"
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         let spaces = " ".repeat(indent);
         let (id, args) = self;
 
-        format!("{}{}\n{}", spaces, id, args.to_asynt(indent))
+        write!(f, "{}{}\n", spaces, id,)?;
+        args.to_asynt(f, indent)
     }
 }
 
@@ -300,10 +306,13 @@ impl Asynt for [Expression] {
         "l_exp"
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         match self.len() {
-            0 => String::new(),
-            _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
+            0 => Ok(()),
+            _ => {
+                self[0].to_asynt(f, indent)?;
+                self[1..].to_asynt(f, indent)
+            }
         }
     }
 }
@@ -331,21 +340,23 @@ impl Asynt for Expression {
         }
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use Expression::*;
 
         match self {
-            Value(v) => format!("{}", v),
-            LeftValue(lv) => lv.to_asynt(indent),
-            CallFunction(cf) => cf.to_asynt(indent),
-            ReadFunction => String::new(),
-            UnaryOperation(o, e) => format!("{}{}", o.to_asynt(indent), e.to_asynt(indent)),
-            BinaryOperation(o, e1, e2) => format!(
-                "{}{}{}",
-                o.to_asynt(indent),
-                e1.to_asynt(indent),
-                e2.to_asynt(indent)
-            ),
+            Value(v) => write!(f, "{}", v),
+            LeftValue(lv) => lv.to_asynt(f, indent),
+            CallFunction(cf) => cf.to_asynt(f, indent),
+            ReadFunction => Ok(()),
+            UnaryOperation(o, e) => {
+                o.to_asynt(f, indent)?;
+                e.to_asynt(f, indent)
+            }
+            BinaryOperation(o, e1, e2) => {
+                o.to_asynt(f, indent)?;
+                e1.to_asynt(f, indent)?;
+                e2.to_asynt(f, indent)
+            }
         }
     }
 }
@@ -355,7 +366,7 @@ impl Asynt for UnaryOperator {
         false
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use UnaryOperator::*;
 
         let spaces = " ".repeat(indent);
@@ -364,7 +375,7 @@ impl Asynt for UnaryOperator {
             Not => "non",
         };
 
-        format!("{}{}\n", spaces, op)
+        write!(f, "{}{}\n", spaces, op)
     }
 }
 
@@ -373,7 +384,7 @@ impl Asynt for BinaryOperator {
         false
     }
 
-    fn content(&self, indent: usize) -> String {
+    fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         use BinaryOperator::*;
 
         let spaces = " ".repeat(indent);
@@ -389,7 +400,7 @@ impl Asynt for BinaryOperator {
             LessThan => "inf",
         };
 
-        format!("{}{}\n", spaces, op)
+        write!(f, "{}{}\n", spaces, op)
     }
 }
 
@@ -398,7 +409,7 @@ mod tests {
     use super::*;
     use crate::lexer::Lexer;
     use crate::parser::Parser;
-    use std::fs::read_to_string;
+    use std::fs::{read, read_to_string};
     use std::path::Path;
 
     #[test]
@@ -463,13 +474,14 @@ mod tests {
         let parser = Parser::new().parse(Lexer::new(&l_file));
 
         if Path::new(&asynt_file).is_file() {
-            let asynt_file = read_to_string(asynt_file).unwrap();
+            let asynt_file = read(asynt_file).unwrap();
+            let mut generated_asynt = Vec::new();
 
-            let generated_asynt = parser.unwrap().to_asynt(0);
+            parser.unwrap().to_asynt(&mut generated_asynt, 0).unwrap();
 
-            print!("{}", generated_asynt);
+            print!("{}", String::from_utf8_lossy(&generated_asynt));
 
-            assert_eq!(asynt_file, generated_asynt);
+            assert!(asynt_file == generated_asynt);
         } else {
             assert!(parser.is_err());
         }
