@@ -20,7 +20,7 @@ pub struct Parser {
 #[fail(display = "parse error occured")]
 pub struct ParseError {
     #[cause]
-    error: lalrpop_util::ParseError<Location, Token, Error>,
+    pub error: lalrpop_util::ParseError<Location, Token, Error>,
 }
 
 impl Parser {

@@ -3,6 +3,8 @@ extern crate failure;
 extern crate failure_derive;
 #[macro_use]
 extern crate lalrpop_util;
+extern crate codespan;
+extern crate codespan_reporting;
 extern crate structopt;
 
 mod app;
