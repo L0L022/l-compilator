@@ -16,13 +16,13 @@ pub trait Asynt {
 
         write!(f, "{}<{}>", spaces, name)?;
         if !self.one_line() {
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         self.content(f, indent + 2)?;
         if !self.one_line() {
             write!(f, "{}", spaces)?;
         }
-        write!(f, "</{}>\n", name)
+        writeln!(f, "</{}>", name)
     }
     fn name(&self) -> &'static str {
         ""
@@ -280,7 +280,7 @@ impl Asynt for LeftValue {
             VariableAt(id, e) => {
                 let spaces = " ".repeat(indent);
 
-                write!(f, "{}<var_base_tableau>{}</var_base_tableau>\n", spaces, id,)?;
+                writeln!(f, "{}<var_base_tableau>{}</var_base_tableau>", spaces, id)?;
                 e.to_asynt(f, indent)
             }
         }
@@ -296,7 +296,7 @@ impl Asynt for CallFunction {
         let spaces = " ".repeat(indent);
         let (id, args) = self;
 
-        write!(f, "{}{}\n", spaces, id,)?;
+        writeln!(f, "{}{}", spaces, id)?;
         args.to_asynt(f, indent)
     }
 }
@@ -375,7 +375,7 @@ impl Asynt for UnaryOperator {
             Not => "non",
         };
 
-        write!(f, "{}{}\n", spaces, op)
+        writeln!(f, "{}{}", spaces, op)
     }
 }
 
@@ -400,7 +400,7 @@ impl Asynt for BinaryOperator {
             LessThan => "inf",
         };
 
-        write!(f, "{}{}\n", spaces, op)
+        writeln!(f, "{}{}", spaces, op)
     }
 }
 

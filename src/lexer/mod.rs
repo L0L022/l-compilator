@@ -30,7 +30,7 @@ impl<'input> Lexer<'input> {
             token.lex_name(f)?;
             write!(f, "\t")?;
             token.lex_value(f)?;
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
 
         Ok(())
