@@ -51,38 +51,35 @@ impl Asynt for Program {
     fn content(&self, indent: usize) -> String {
         use Statement::*;
 
-        let var: Vec<Statement> = self
+        let var = self
             .0
             .iter()
-            .filter(|s| if let DclVariable(..) = s { true } else { false })
-            .cloned()
-            .collect();
+            .filter(|s| if let DclVariable(..) = s { true } else { false });
 
-        let func: Vec<Statement> = self
+        let func = self
             .0
             .iter()
-            .filter(|s| if let DclFunction(..) = s { true } else { false })
-            .cloned()
-            .collect();
+            .filter(|s| if let DclFunction(..) = s { true } else { false });
 
-        format!("{}{}", var.to_asynt(indent), func.to_asynt(indent))
+        format!("{}{}", (&var).to_asynt(indent), (&func).to_asynt(indent))
     }
 }
 
-impl Asynt for [Statement] {
+impl<'a, 'b: 'a, I: Iterator<Item = &'b Statement> + Clone> Asynt for &'a I {
     fn name(&self) -> &'static str {
         "l_dec"
     }
 
     fn hide(&self) -> bool {
-        self.is_empty()
+        (*self).clone().next().is_none()
     }
 
     fn content(&self, indent: usize) -> String {
-        match self.len() {
-            0 => String::new(),
-            1 => self[0].to_asynt(indent),
-            _ => format!("{}{}", self[0].to_asynt(indent), self[1..].to_asynt(indent)),
+        let mut it: I = (*self).clone();
+
+        match it.next() {
+            None => String::new(),
+            Some(s) => format!("{}{}", s.to_asynt(indent), (&it).to_asynt(indent)),
         }
     }
 }
