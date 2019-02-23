@@ -475,7 +475,7 @@ mod tests {
 
         if Path::new(&asynt_file).is_file() {
             let asynt_file = read(asynt_file).unwrap();
-            let mut generated_asynt = Vec::new();
+            let mut generated_asynt = Vec::with_capacity(asynt_file.capacity());
 
             parser.unwrap().to_asynt(&mut generated_asynt, 0).unwrap();
 
