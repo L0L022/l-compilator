@@ -1,6 +1,6 @@
 mod opt;
 
-use crate::{asynt::Asynt, lexer::Lexer, parser::Parser};
+use crate::{format::asynt::Asynt, lexer::Lexer, parser::Parser};
 use failure::{Error, ResultExt};
 use opt::Opt;
 use std::fs::read_to_string;

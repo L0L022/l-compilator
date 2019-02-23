@@ -20,22 +20,8 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    pub fn into_lex(self) -> Result<String, Error> {
-        let mut lex = String::new();
-        let input = self.lexer.source;
-
-        for spanned in self {
-            let (begin, token, end) = spanned?;
-            let line = format!(
-                "{}\t{}\t{}\n",
-                &input[begin..end],
-                token.lex_name(),
-                token.lex_value()
-            );
-            lex.push_str(&line);
-        }
-
-        Ok(lex)
+    pub fn source(&self) -> &'input str {
+        self.lexer.source
     }
 }
 
