@@ -1,5 +1,5 @@
 use super::*;
-use std::fs::read_to_string;
+use std::fs::{read, read_to_string};
 
 #[test]
 fn affect_err() {
@@ -63,9 +63,12 @@ fn alone_read_call() {
 
 fn test(filename: &str) {
     let l_file = read_to_string(format!("tests/resources/{}.l", filename)).unwrap();
-    let lex_file = read_to_string(format!("tests/resources/{}.lex", filename)).unwrap();
+    let lex_file = read(format!("tests/resources/{}.lex", filename)).unwrap();
+    let mut generated_lex = Vec::with_capacity(lex_file.capacity());
 
-    let generated_lex = Lexer::new(&l_file).into_lex().unwrap();
+    Lexer::new(&l_file).into_lex(&mut generated_lex).unwrap();
+
+    print!("{}", String::from_utf8_lossy(&generated_lex));
 
     assert_eq!(lex_file, generated_lex);
 }

@@ -1,32 +1,31 @@
 use crate::lexer::Lexer;
 use crate::token::Token;
-use failure::Error;
+use failure::Fallible;
+use std::io;
+use std::io::Write;
 
 impl<'input> Lexer<'input> {
-    pub fn into_lex(self) -> Result<String, Error> {
-        let mut lex = String::new();
+    pub fn into_lex(self, f: &mut dyn Write) -> Fallible<()> {
         let input = self.source();
 
         for spanned in self {
             let (begin, token, end) = spanned?;
-            let line = format!(
-                "{}\t{}\t{}\n",
-                &input[begin..end],
-                token.lex_name(),
-                token.lex_value()
-            );
-            lex.push_str(&line);
+            write!(f, "{}\t", &input[begin..end])?;
+            token.lex_name(f)?;
+            write!(f, "\t")?;
+            token.lex_value(f)?;
+            writeln!(f)?;
         }
 
-        Ok(lex)
+        Ok(())
     }
 }
 
 impl Token {
-    fn lex_name(&self) -> &'static str {
+    fn lex_name(&self, f: &mut dyn Write) -> io::Result<()> {
         use Token::*;
 
-        match self {
+        let name = match self {
             Number(_) => "nombre",
             Id(_) => "identificateur",
             IntegerType | ReadFunction | WriteFunction | Return | If | Then | Else | While | Do => {
@@ -37,17 +36,19 @@ impl Token {
             | Subtraction | Multiplication | Division | LessThan | Equal | And | Or | Not => {
                 "symbole"
             }
-        }
+        };
+
+        write!(f, "{}", name)
     }
 
-    fn lex_value(&self) -> String {
+    fn lex_value(&self, f: &mut dyn Write) -> io::Result<()> {
         use Token::*;
 
         if let Number(n) = self {
-            return format!("{}", n);
+            return write!(f, "{}", n);
         }
 
-        match self {
+        let value = match self {
             Number(_) => unreachable!(),
             Id(id) => id,
             Comma => "VIRGULE",
@@ -86,7 +87,8 @@ impl Token {
             And => "ET",
             Or => "OU",
             Not => "NON",
-        }
-        .to_owned()
+        };
+
+        write!(f, "{}", value)
     }
 }

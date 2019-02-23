@@ -27,16 +27,14 @@ impl App {
     }
 
     fn print_lex(content: &str) -> Result<(), Error> {
-        print!("{}", Lexer::new(&content).into_lex()?);
-
-        Ok(())
+        Lexer::new(&content).into_lex(&mut std::io::stdout().lock())
     }
 
     fn print_ast(content: &str) -> Result<(), Error> {
         let l = Lexer::new(&content);
         let p = Parser::new();
 
-        print!("{}", p.parse(l)?.to_asynt(0));
+        p.parse(l)?.to_asynt(&mut std::io::stdout().lock(), 0)?;
 
         Ok(())
     }
