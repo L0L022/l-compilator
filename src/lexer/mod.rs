@@ -3,9 +3,10 @@ mod logos_token;
 mod tests;
 
 use crate::token::Token;
-use failure::Error;
+use failure::{Error, Fallible};
 use logos::Logos;
 use logos_token::LogosToken;
+use std::io::Write;
 
 pub type Location = usize;
 
@@ -20,22 +21,19 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    pub fn into_lex(self) -> Result<String, Error> {
-        let mut lex = String::new();
+    pub fn into_lex(self, f: &mut dyn Write) -> Fallible<()> {
         let input = self.lexer.source;
 
         for spanned in self {
             let (begin, token, end) = spanned?;
-            let line = format!(
-                "{}\t{}\t{}\n",
-                &input[begin..end],
-                token.lex_name(),
-                token.lex_value()
-            );
-            lex.push_str(&line);
+            write!(f, "{}\t", &input[begin..end])?;
+            token.lex_name(f)?;
+            write!(f, "\t")?;
+            token.lex_value(f)?;
+            write!(f, "\n")?;
         }
 
-        Ok(lex)
+        Ok(())
     }
 }
 

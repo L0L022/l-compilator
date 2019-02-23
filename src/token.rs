@@ -1,4 +1,6 @@
 use std::fmt;
+use std::io;
+use std::io::Write;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
@@ -43,10 +45,10 @@ pub enum Token {
 }
 
 impl Token {
-    pub fn lex_name(&self) -> &'static str {
+    pub fn lex_name(&self, f: &mut dyn Write) -> io::Result<()> {
         use Token::*;
 
-        match self {
+        let name = match self {
             Number(_) => "nombre",
             Id(_) => "identificateur",
             IntegerType | ReadFunction | WriteFunction | Return | If | Then | Else | While | Do => {
@@ -57,17 +59,19 @@ impl Token {
             | Subtraction | Multiplication | Division | LessThan | Equal | And | Or | Not => {
                 "symbole"
             }
-        }
+        };
+
+        write!(f, "{}", name)
     }
 
-    pub fn lex_value(&self) -> String {
+    pub fn lex_value(&self, f: &mut dyn Write) -> io::Result<()> {
         use Token::*;
 
         if let Number(n) = self {
-            return format!("{}", n);
+            return write!(f, "{}", n);
         }
 
-        match self {
+        let value = match self {
             Number(_) => unreachable!(),
             Id(id) => id,
             Comma => "VIRGULE",
@@ -106,8 +110,9 @@ impl Token {
             And => "ET",
             Or => "OU",
             Not => "NON",
-        }
-        .to_owned()
+        };
+
+        write!(f, "{}", value)
     }
 }
 
