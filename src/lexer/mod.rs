@@ -31,8 +31,10 @@ impl<'input> Lexer<'input> {
     range, token
 )]
 pub struct LexicalError {
-    token: String,
-    range: std::ops::Range<Location>,
+    pub token: String,
+    pub range: std::ops::Range<Location>,
+    #[cause]
+    pub error: Error,
 }
 
 #[derive(Debug, Fail)]
@@ -62,11 +64,12 @@ impl<'input> Iterator for Lexer<'input> {
                     let token = match logos_token.to_token(self.lexer.slice()) {
                         Ok(v) => v,
                         Err(e) => {
-                            let e = e.context(LexicalError {
+                            return Some(Err(LexicalError {
                                 token: self.lexer.slice().to_string(),
                                 range,
-                            });
-                            return Some(Err(e.into()));
+                                error: e.into(),
+                            }
+                            .into()));
                         }
                     };
 
