@@ -1,6 +1,6 @@
 [package]
 name = "l-compilator"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Loïc Escales <loic.escales@kakos.fr>"]
 edition = "2018"
 build = "build.rs"
