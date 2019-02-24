@@ -1,11 +1,11 @@
-mod into_diagnostic;
+mod as_diagnostic;
 mod opt;
 
 use crate::{format::asynt::Asynt, lexer::Lexer, parser::Parser};
+use as_diagnostic::AsDiagnostic;
 use codespan::CodeMap;
 use codespan_reporting::{emit, termcolor::StandardStream};
 use failure::{Error, Fallible, ResultExt};
-use into_diagnostic::IntoDiagnostic;
 use opt::Opt;
 use structopt::StructOpt;
 
@@ -35,7 +35,7 @@ impl App {
         };
 
         if let Err(error) = res() {
-            let error = error.into_diagnostic(&file_map).ok_or(error)?;
+            let error = error.as_diagnostic(&file_map).ok_or(error)?;
             diagnostics.push(error);
         }
 

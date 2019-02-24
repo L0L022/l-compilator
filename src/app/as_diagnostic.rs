@@ -5,24 +5,24 @@ use codespan_reporting::{Diagnostic, Label, Severity};
 use failure::Fail;
 use std::fmt::Write;
 
-pub trait IntoDiagnostic {
-    fn into_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic>;
+pub trait AsDiagnostic {
+    fn as_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic>;
 }
 
-impl IntoDiagnostic for failure::Error {
-    fn into_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic> {
-        self.as_fail().into_diagnostic(file_map)
+impl AsDiagnostic for failure::Error {
+    fn as_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic> {
+        self.as_fail().as_diagnostic(file_map)
     }
 }
 
-impl IntoDiagnostic for &dyn Fail {
-    fn into_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic> {
+impl AsDiagnostic for &dyn Fail {
+    fn as_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic> {
         if let Some(error) = self.downcast_ref::<LexicalError>() {
-            return error.into_diagnostic(file_map);
+            return error.as_diagnostic(file_map);
         }
 
         if let Some(error) = self.downcast_ref::<ParseError>() {
-            return error.into_diagnostic(file_map);
+            return error.as_diagnostic(file_map);
         }
 
         None
@@ -30,7 +30,7 @@ impl IntoDiagnostic for &dyn Fail {
 }
 
 impl LexicalError {
-    fn into_diagnostic(&self, _file_map: &FileMap) -> Option<Diagnostic> {
+    fn as_diagnostic(&self, _file_map: &FileMap) -> Option<Diagnostic> {
         let span = Span::new(
             ByteIndex(self.range.start as u32 + 1),
             ByteIndex(self.range.end as u32 + 1),
@@ -42,7 +42,7 @@ impl LexicalError {
 }
 
 impl ParseError {
-    fn into_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic> {
+    fn as_diagnostic(&self, file_map: &FileMap) -> Option<Diagnostic> {
         use lalrpop_util::ParseError::*;
 
         match &self.error {
@@ -50,12 +50,13 @@ impl ParseError {
                 let error = Diagnostic::new(Severity::Error, "An unexpected token was observed");
 
                 let (error, span) = if let Some(token) = token {
-                    let (start, .., end) = token;
+                    let (start, token, end) = token;
                     let span = Span::new(ByteIndex(*start as u32 + 1), ByteIndex(*end as u32 + 1));
 
                     (
                         error.with_label(
-                            Label::new_primary(span).with_message("unrecognized token"),
+                            Label::new_primary(span)
+                                .with_message(format!("unexpected token: {}", token)),
                         ),
                         span,
                     )
@@ -88,15 +89,17 @@ impl ParseError {
                 Some(error)
             }
             ExtraToken { token } => {
-                let (start, .., end) = token;
+                let (start, token, end) = token;
                 let span = Span::new(ByteIndex(*start as u32 + 1), ByteIndex(*end as u32 + 1));
 
                 let error = Diagnostic::new(Severity::Error, "An unexpected token was observed")
-                    .with_label(Label::new_primary(span).with_message("extra token"));
+                    .with_label(
+                        Label::new_primary(span).with_message(format!("extra token: {}", token)),
+                    );
 
                 Some(error)
             }
-            User { error } => error.into_diagnostic(file_map),
+            User { error } => error.as_diagnostic(file_map),
             _ => None,
         }
     }

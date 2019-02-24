@@ -63,11 +63,11 @@ impl<'input> Iterator for Lexer<'input> {
 
                     let token = match logos_token.to_token(self.lexer.slice()) {
                         Ok(v) => v,
-                        Err(e) => {
+                        Err(error) => {
                             return Some(Err(LexicalError {
                                 token: self.lexer.slice().to_string(),
                                 range,
-                                error: e.into(),
+                                error,
                             }
                             .into()));
                         }
