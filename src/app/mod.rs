@@ -45,6 +45,7 @@ impl App {
                 emit(&mut writer.lock(), &code_map, &diagnostic).unwrap();
                 println!();
             }
+            std::process::exit(1);
         }
 
         Ok(())

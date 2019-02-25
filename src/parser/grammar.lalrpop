@@ -6,32 +6,26 @@ use failure::Error;
 
 grammar;
 
-pub Program : Program = <sts:Statements?> => Program(sts.unwrap_or(Vec::new()));
+pub Program : Program = <v:DclVariables?> <f:DclFunctions?> => {
+    let mut v = v.unwrap_or_default();
+    v.extend(f.unwrap_or_default());
+    Program(v)
+};
 
-Statements : Vec<Statement> = {
-    Statement => vec![<>],
-    <sts:Statements> <s:Statement> => {
-        let mut sts = sts;
-        sts.push(s);
-        sts
-    },
-    AtomicStatments,
-    <sts:Statements> <asts:AtomicStatments> => {
-        let mut sts = sts;
-        sts.extend(asts);
-        sts
+DclVariables : Vec<Statement> = {
+    OneLineDclVariables,
+    <l:OneLineDclVariables> <v:DclVariables> => {
+        let mut l = l;
+        l.extend(v);
+        l
     },
 };
 
-Statement : Statement = {
-    // DclFunction
-    <i:Id> "(" <p:CommaMult<Scalar>> ")" <v:(<CommaMult<Scalar>> ";")?> "{" <is:Instruction*> "}" => Statement::DclFunction(i, p, v.unwrap_or(Vec::new()), is),
-};
+OneLineDclVariables : Vec<Statement> = <v:CommaPlus<Variable>> ";" => v.into_iter().map(|e| Statement::DclVariable(e)).collect();
 
-AtomicStatments : Vec<Statement> = {
-    // DclVariables
-    <v:CommaPlus<Variable>> ";" => v.into_iter().map(|e| Statement::DclVariable(e)).collect(),
-};
+DclFunctions : Vec<Statement> = DclFunction+;
+
+DclFunction : Statement = <i:Id> "(" <p:CommaMult<Scalar>> ")" <v:(<CommaMult<Scalar>> ";")?> "{" <is:Instruction*> "}" => Statement::DclFunction(i, p, v.unwrap_or(Vec::new()), is);
 
 Variable : Variable = {
     Scalar => Variable::Scalar(<>),
