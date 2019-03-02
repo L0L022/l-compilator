@@ -30,6 +30,126 @@ fn tri() {
 }
 
 #[test]
+fn affect_err() {
+    test("affect-err");
+}
+
+#[test]
+fn appel() {
+    test("appel");
+}
+
+#[test]
+fn associativite() {
+    test("associativite");
+}
+
+#[test]
+fn calculette() {
+    test("calculette");
+}
+
+#[test]
+fn procedure_arg() {
+    test("procedure_arg");
+}
+
+#[test]
+fn procedure() {
+    test("procedure");
+}
+
+#[test]
+fn procedure_retour() {
+    test("procedure_retour");
+}
+
+#[test]
+fn procedure_varloc() {
+    test("procedure_varloc");
+}
+
+#[test]
+fn si() {
+    test("si");
+}
+
+#[test]
+fn sinon() {
+    test("sinon");
+}
+
+#[test]
+fn tableau2() {
+    test("tableau2");
+}
+
+#[test]
+fn tableau() {
+    test("tableau");
+}
+
+#[test]
+fn tantque0() {
+    test("tantque0");
+}
+
+#[test]
+fn tantque() {
+    test("tantque");
+}
+
+#[test]
+fn lexunits() {
+    test("lexunits");
+}
+
+#[test]
+fn factorielle() {
+    test("factorielle");
+}
+
+#[test]
+fn fibo() {
+    test("fibo");
+}
+
+#[test]
+fn pgcd() {
+    test("pgcd");
+}
+
+#[test]
+fn sommeneg() {
+    test("sommeneg");
+}
+
+#[test]
+fn lex_err() {
+    test("lex-err");
+}
+
+#[test]
+fn synt_err() {
+    test("synt-err");
+}
+
+#[test]
+fn extra() {
+    test("extra");
+}
+
+#[test]
+fn ordre() {
+    test("ordre");
+}
+
+#[test]
+fn three_three_a() {
+    test("33a");
+}
+
+#[test]
 fn tri_ugly() {
     test("tri_ugly");
 }
