@@ -12,6 +12,7 @@ mod ast;
 mod format;
 mod lexer;
 mod parser;
+mod symbol_table;
 mod token;
 
 pub use app::App;
