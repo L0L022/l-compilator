@@ -12,6 +12,7 @@ mod ast;
 mod format;
 mod lexer;
 mod parser;
+mod semantic_analyser;
 mod symbol_table;
 mod token;
 
