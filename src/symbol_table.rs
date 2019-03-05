@@ -1,31 +1,53 @@
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
+use std::rc::Weak;
 
-#[derive(Debug)]
-struct SymbolTable<'a> {
-    tab: Vec<Symbol<'a>>,
-    base: i32,
-    sommet: i32,
+pub struct SymbolTable {
+    pub parent: Option<Weak<RefCell<SymbolTable>>>,
+    pub symbols: Vec<Symbol>,
 }
 
-#[derive(Debug)]
-struct Symbol<'a> {
-    id: &'a str,
-    address: i32,
-    kind: SymbolKind,
+impl SymbolTable {
+    pub fn new() -> Self {
+        Self {
+            parent: None,
+            symbols: Vec::new(),
+        }
+    }
+
+    pub fn with_parent(parent: &Rc<RefCell<SymbolTable>>) -> Self {
+        Self {
+            parent: Some(Rc::downgrade(parent)),
+            symbols: Vec::new(),
+        }
+    }
 }
 
-#[derive(Debug, Copy, Clone)]
-enum Scope {
+pub struct Symbol {
+    pub id: String,
+    pub address: i32,
+    pub kind: SymbolKind,
+}
+
+pub enum SymbolKind {
+    Scalar {
+        scope: Scope,
+    },
+    Vector {
+        scope: Scope,
+        size: i32,
+    },
+    Function {
+        nb_arguments: i32,
+        symbol_table: Rc<RefCell<SymbolTable>>,
+    },
+}
+
+pub enum Scope {
     Global,
     Local,
     Argument,
-}
-
-#[derive(Debug, Copy, Clone)]
-enum SymbolKind {
-    Scalar { scope: Scope },
-    Vector { scope: Scope, size: i32 },
-    Function { nb_arguments: i32 },
 }
 
 impl fmt::Display for Scope {
@@ -40,7 +62,7 @@ impl fmt::Display for Scope {
     }
 }
 
-impl<'a> fmt::Display for SymbolTable<'a> {
+impl fmt::Display for SymbolTable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "------------------------------------------")?;
         writeln!(f, "base = {}", self.base)?;
@@ -52,7 +74,7 @@ impl<'a> fmt::Display for SymbolTable<'a> {
     }
 }
 
-impl<'a> fmt::Display for Symbol<'a> {
+impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use SymbolKind::*;
 
