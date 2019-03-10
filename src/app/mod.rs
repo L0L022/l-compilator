@@ -1,6 +1,8 @@
 mod as_diagnostic;
 mod opt;
 
+use crate::format::tab::AsTab;
+use crate::semantic_analyser::SemanticAnalyser;
 use crate::{format::asynt::Asynt, lexer::Lexer, parser::Parser};
 use as_diagnostic::AsDiagnostic;
 use codespan::CodeMap;
@@ -29,6 +31,10 @@ impl App {
 
             if opt.ast {
                 Self::print_ast(&content)?;
+            }
+
+            if opt.symbol_table {
+                Self::print_tab(&content)?;
             }
 
             Ok(())
@@ -60,6 +66,17 @@ impl App {
         let p = Parser::new();
 
         p.parse(l)?.to_asynt(&mut std::io::stdout().lock(), 0)?;
+
+        Ok(())
+    }
+
+    fn print_tab(content: &str) -> Fallible<()> {
+        let l = Lexer::new(&content);
+        let p = Parser::new();
+        let s = SemanticAnalyser {};
+
+        dbg!(crate::semantic_analyser::SemanticAnalyser::analyse(&p.parse(l)?)?.borrow())
+            .as_table(&mut std::io::stdout().lock())?;
 
         Ok(())
     }

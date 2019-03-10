@@ -42,10 +42,10 @@ struct Data {
     errors: Vec<diagnostic::Diagnostic>,
 }
 
-struct SemanticAnalyser {}
+pub struct SemanticAnalyser {}
 
 impl SemanticAnalyser {
-    fn analyse(ast: &Program) -> Fallible<Rc<RefCell<SymbolTable>>> {
+    pub fn analyse(ast: &Program) -> Fallible<Rc<RefCell<SymbolTable>>> {
         let table = Rc::new(RefCell::new(SymbolTable::new()));
 
         let mut d = Data {
@@ -114,21 +114,44 @@ impl Analyse for Statement {
             },
             DclFunction(id, args, vars, instructions) => {
                 let table = Rc::new(RefCell::new(SymbolTable::with_parent(&d.current_table)));
-                d.current_table.borrow_mut().parent = Some(Rc::downgrade(&table));
                 d.current_table.borrow_mut().symbols.push(Symbol {
                     id: id.to_string(),
                     address: 0,
                     kind: SymbolKind::Function {
                         nb_arguments: args.len() as i32,
-                        symbol_table: table,
+                        symbol_table: table.clone(),
                     },
                 });
+                d.current_table = table.clone();
+
+                for (_, id) in args {
+                    d.current_table.borrow_mut().symbols.push(Symbol {
+                        id: id.clone(),
+                        address: 0,
+                        kind: SymbolKind::Scalar {
+                            scope: Scope::Argument,
+                        },
+                    });
+                }
+
+                for (_, id) in vars {
+                    d.current_table.borrow_mut().symbols.push(Symbol {
+                        id: id.clone(),
+                        address: 0,
+                        kind: SymbolKind::Scalar {
+                            scope: Scope::Local,
+                        },
+                    });
+                }
+
                 //instructions.analyse(d);
+
                 let p = if let Some(p) = &d.current_table.borrow().parent {
                     p.upgrade()
                 } else {
                     None
                 };
+
                 if let Some(p) = p {
                     d.current_table = p.clone();
                 }
