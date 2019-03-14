@@ -2,7 +2,7 @@ mod as_diagnostic;
 mod opt;
 
 use crate::format::tab::AsTab;
-use crate::semantic_analyser::SemanticAnalyser;
+use crate::semantic_analyser::Analyse;
 use crate::{format::asynt::Asynt, lexer::Lexer, parser::Parser};
 use as_diagnostic::AsDiagnostic;
 use codespan::CodeMap;
@@ -73,9 +73,10 @@ impl App {
     fn print_tab(content: &str) -> Fallible<()> {
         let l = Lexer::new(&content);
         let p = Parser::new();
-        let s = SemanticAnalyser {};
 
-        dbg!(crate::semantic_analyser::SemanticAnalyser::analyse(&p.parse(l)?)?.borrow())
+        p.parse(l)?
+            .analyse()?
+            .borrow()
             .as_table(&mut std::io::stdout().lock())?;
 
         Ok(())
