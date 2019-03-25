@@ -8,6 +8,8 @@ pub struct SymbolTable {
     pub symbols: Vec<Symbol>,
 }
 
+use std::cell::Ref;
+
 impl SymbolTable {
     pub fn new() -> Self {
         Self {
@@ -22,6 +24,20 @@ impl SymbolTable {
             symbols: Vec::new(),
         }
     }
+
+    // pub fn iter<'a>(&'a self) -> Box<Iterator<Item = &'a Symbol> + 'a> {
+    //     let it = self.symbols.iter();
+    //
+    //     if let Some(parent) = &self.parent {
+    //         if let Some(parent) = parent.upgrade() {
+    //             let it2 = parent.borrow().iter();
+    //
+    //             return Box::new(it2.chain(it));
+    //         }
+    //     }
+    //
+    //     Box::new(it)
+    // }
 }
 
 #[derive(Debug)]

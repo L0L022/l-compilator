@@ -29,6 +29,11 @@ fn tri() {
     test("tri");
 }
 
+#[test]
+fn vide() {
+    test("vide");
+}
+
 fn test(filename: &str) {
     let l_file = read_to_string(format!("tests/resources/{}.l", filename)).unwrap();
     let tab_file = format!("tests/resources/{}.tab", filename);

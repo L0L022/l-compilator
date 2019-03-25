@@ -69,6 +69,22 @@ impl<T: Analyse> Analyse for [T] {
 impl Analyse for Program {
     fn analyse(&self, d: &mut Data) {
         self.0.analyse(d);
+
+        let main_exists = d.table.borrow().symbols.iter().any(|symbol| {
+            if let SymbolKind::Function { .. } = symbol.kind {
+                if symbol.id == "main" {
+                    return true;
+                }
+            }
+
+            false
+        });
+
+        if !main_exists {
+            d.errors.push(diagnostic::Diagnostic::Error(
+                diagnostic::Error::MainUndeclared,
+            ));
+        }
     }
 }
 
@@ -81,7 +97,7 @@ impl Analyse for Statement {
             DclFunction(id, args, vars, instructions) => {
                 let table = Rc::new(RefCell::new(SymbolTable::with_parent(&d.table)));
                 d.table.borrow_mut().symbols.push(Symbol {
-                    id: id.to_string(),
+                    id: id.clone(),
                     address: 0,
                     kind: SymbolKind::Function {
                         nb_arguments: args.len() as u32,
@@ -98,7 +114,7 @@ impl Analyse for Statement {
                 d.address = 0;
                 vars.analyse(d);
 
-                //instructions.analyse(d);
+                instructions.analyse(d);
 
                 let p = if let Some(p) = &d.table.borrow().parent {
                     p.upgrade()
@@ -129,7 +145,7 @@ impl Analyse for Scalar {
     fn analyse(&self, d: &mut Data) {
         let (t, id) = self;
         d.table.borrow_mut().symbols.push(Symbol {
-            id: id.to_string(),
+            id: id.clone(),
             address: d.address,
             kind: SymbolKind::Scalar { scope: d.scope },
         });
@@ -141,7 +157,7 @@ impl Analyse for Vector {
     fn analyse(&self, d: &mut Data) {
         let (t, size, id) = self;
         d.table.borrow_mut().symbols.push(Symbol {
-            id: id.to_string(),
+            id: id.clone(),
             address: d.address,
             kind: SymbolKind::Vector {
                 scope: d.scope,
@@ -152,22 +168,36 @@ impl Analyse for Vector {
     }
 }
 
-/*
-impl Analyse for [Instruction] {
-    fn analyse(&self, d: &mut Data) {
-        for i in self {
-            i.analyse(d);
-        }
-    }
-}
-
 impl Analyse for Instruction {
     fn analyse(&self, d: &mut Data) {
         use Instruction::*;
-
-        // match self {
-        //     _ => d.errors.push(diagnostic::Error::AlreadyDeclared),
-        // }
     }
 }
-*/
+
+impl Analyse for Expression {
+    fn analyse(&self, d: &mut Data) {
+        use Expression::*;
+    }
+}
+
+impl Analyse for LeftValue {
+    fn analyse(&self, d: &mut Data) {
+        use LeftValue::*;
+    }
+}
+
+impl Analyse for CallFunction {
+    fn analyse(&self, d: &mut Data) {
+        let (id, expressions) = self;
+
+        let exists = d.table.borrow().symbols.iter().any(|symbol| {
+            if let SymbolKind::Function { .. } = symbol.kind {
+                if symbol.id == *id {
+                    return true;
+                }
+            }
+
+            false
+        });
+    }
+}
