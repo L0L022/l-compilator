@@ -1,7 +1,6 @@
 mod as_diagnostic;
 mod opt;
 
-use crate::format::tab::AsTab;
 use crate::semantic_analyser::Analyse;
 use crate::{format::asynt::Asynt, lexer::Lexer, parser::Parser};
 use as_diagnostic::AsDiagnostic;

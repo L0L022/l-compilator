@@ -40,7 +40,18 @@ pub struct Data {
     pub table: Rc<RefCell<SymbolTable>>,
     pub errors: Vec<diagnostic::Diagnostic>,
     pub scope: Scope,
-    pub address: u32,
+    pub address: i32,
+}
+
+impl Data {
+    pub fn new(table: &Rc<RefCell<SymbolTable>>) -> Self {
+        Self {
+            table: Rc::clone(table),
+            errors: Vec::new(),
+            scope: Scope::Global,
+            address: 0,
+        }
+    }
 }
 
 pub trait Analyse {
@@ -66,27 +77,7 @@ impl Analyse for Statement {
         use Statement::*;
 
         match self {
-            DclVariable(v) => match v {
-                Variable::Scalar(s) => {
-                    let (_, id) = s;
-                    d.table.borrow_mut().symbols.push(Symbol {
-                        id: id.to_string(),
-                        address: 0,
-                        kind: SymbolKind::Scalar { scope: d.scope },
-                    });
-                }
-                Variable::Vector(v) => {
-                    let (_, size, id) = v;
-                    d.table.borrow_mut().symbols.push(Symbol {
-                        id: id.to_string(),
-                        address: 0,
-                        kind: SymbolKind::Vector {
-                            scope: d.scope,
-                            size: *size,
-                        },
-                    });
-                }
-            },
+            DclVariable(v) => v.analyse(d),
             DclFunction(id, args, vars, instructions) => {
                 let table = Rc::new(RefCell::new(SymbolTable::with_parent(&d.table)));
                 d.table.borrow_mut().symbols.push(Symbol {
@@ -98,27 +89,14 @@ impl Analyse for Statement {
                     },
                 });
                 d.table = table.clone();
-                d.scope = Scope::Argument;
 
-                for (_, id) in args {
-                    d.table.borrow_mut().symbols.push(Symbol {
-                        id: id.clone(),
-                        address: 0,
-                        kind: SymbolKind::Scalar {
-                            scope: Scope::Argument,
-                        },
-                    });
-                }
+                d.scope = Scope::Argument;
+                d.address = 0;
+                args.analyse(d);
+
                 d.scope = Scope::Local;
-                for (_, id) in vars {
-                    d.table.borrow_mut().symbols.push(Symbol {
-                        id: id.clone(),
-                        address: 0,
-                        kind: SymbolKind::Scalar {
-                            scope: Scope::Local,
-                        },
-                    });
-                }
+                d.address = 0;
+                vars.analyse(d);
 
                 //instructions.analyse(d);
 
@@ -135,6 +113,45 @@ impl Analyse for Statement {
         }
     }
 }
+
+impl Analyse for Variable {
+    fn analyse(&self, d: &mut Data) {
+        use Variable::*;
+
+        match self {
+            Scalar(s) => s.analyse(d),
+            Vector(v) => v.analyse(d),
+        }
+    }
+}
+
+impl Analyse for Scalar {
+    fn analyse(&self, d: &mut Data) {
+        let (_, id) = self;
+        d.table.borrow_mut().symbols.push(Symbol {
+            id: id.to_string(),
+            address: d.address,
+            kind: SymbolKind::Scalar { scope: d.scope },
+        });
+        d.address += 4;
+    }
+}
+
+impl Analyse for Vector {
+    fn analyse(&self, d: &mut Data) {
+        let (_, size, id) = self;
+        d.table.borrow_mut().symbols.push(Symbol {
+            id: id.to_string(),
+            address: d.address,
+            kind: SymbolKind::Vector {
+                scope: d.scope,
+                size: *size,
+            },
+        });
+        d.address += 4 * size;
+    }
+}
+
 /*
 impl Analyse for [Instruction] {
     fn analyse(&self, d: &mut Data) {
