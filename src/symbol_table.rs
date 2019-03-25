@@ -30,15 +30,15 @@ impl SymbolTable {
     }
 
     pub fn iter<'a>(&'a self, from: usize) -> Box<Iterator<Item = &'a Symbol> + 'a> {
-        let it = self.tables[from].symbols.iter();
+        let self_it = self.tables[from].symbols.iter().rev();
 
         if let Some(parent) = &self.tables[from].parent {
-            let it2 = self.tables[*parent].symbols.iter();
+            let parent_it = self.iter(*parent);
 
-            return Box::new(it2.chain(it));
+            return Box::new(self_it.chain(parent_it));
         }
 
-        Box::new(it)
+        Box::new(self_it)
     }
 }
 

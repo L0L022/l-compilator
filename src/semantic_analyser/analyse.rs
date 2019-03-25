@@ -75,15 +75,12 @@ impl Analyse for Program {
     fn analyse(&self, d: &mut Data) {
         self.0.analyse(d);
 
-        let main_exists = d.symbol_table.global().symbols.iter().any(|symbol| {
-            if let SymbolKind::Function { .. } = symbol.kind {
-                if symbol.id == "main" {
-                    return true;
-                }
-            }
-
-            false
-        });
+        let main_exists = d
+            .symbol_table
+            .global()
+            .symbols
+            .iter()
+            .any(|symbol| symbol.is_function() && symbol.id == "main");
 
         if !main_exists {
             d.errors.push(diagnostic::Diagnostic::Error(
@@ -232,7 +229,6 @@ impl Analyse for LeftValue {
 
         match self {
             Variable(id) => {
-                // TODO vérifier l'ordre, utiliser un rev ?
                 let symbol = d
                     .symbol_table
                     .iter(d.current_table)
@@ -254,7 +250,6 @@ impl Analyse for LeftValue {
                 }
             }
             VariableAt(id, _) => {
-                // TODO vérifier l'ordre, utiliser un rev ?
                 let symbol = d
                     .symbol_table
                     .iter(d.current_table)
