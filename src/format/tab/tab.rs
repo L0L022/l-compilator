@@ -8,23 +8,29 @@ pub trait AsTab {
 
 impl AsTab for SymbolTable {
     fn as_table(&self, f: &mut dyn Write) -> io::Result<()> {
-        let global_functions = self.symbols.iter().enumerate().filter_map(|(i, s)| {
-            if let SymbolKind::Function { symbol_table, .. } = &s.kind {
-                Some((i, symbol_table.borrow()))
-            } else {
-                None
-            }
-        });
+        let global_functions = self
+            .global()
+            .symbols
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| {
+                if let SymbolKind::Function { symbol_table, .. } = &s.kind {
+                    Some((i, *symbol_table))
+                } else {
+                    None
+                }
+            });
 
         for (i, symbol_table) in global_functions {
             let i = i + 1;
-            let symbol_table = &symbol_table.symbols;
+            let symbol_table = &self.tables[symbol_table].symbols;
 
             writeln!(f, "------------------------------------------")?;
             writeln!(f, "base = {}", i)?;
             writeln!(f, "sommet = {}", i + symbol_table.len())?;
 
             let it = self
+                .global()
                 .symbols
                 .iter()
                 .take(i)
@@ -48,7 +54,7 @@ impl AsTab for Symbol {
 
         let (scope, kind, additional) = match self.kind {
             Scalar { scope } => (scope, "ENTIER", 1),
-            Vector { scope, size } => (scope, "TABLEAU", size),
+            Vector { scope, size } => (scope, "TABLEAU", size as usize),
             Function { nb_arguments, .. } => (Scope::Global, "FONCTION", nb_arguments),
         };
 

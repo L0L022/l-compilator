@@ -1,16 +1,48 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::rc::Weak;
-
 #[derive(Debug)]
 pub struct SymbolTable {
-    pub parent: Option<Weak<RefCell<SymbolTable>>>,
+    pub tables: Vec<Table>,
+}
+
+#[derive(Debug)]
+pub struct Table {
+    pub parent: Option<usize>,
     pub symbols: Vec<Symbol>,
 }
 
-use std::cell::Ref;
-
 impl SymbolTable {
+    pub fn new() -> Self {
+        Self {
+            tables: vec![Table::new()],
+        }
+    }
+
+    pub fn global(&self) -> &Table {
+        &self.tables[0]
+    }
+
+    pub fn new_table(&mut self, parent: Option<usize>) -> usize {
+        self.tables.push(Table {
+            parent,
+            symbols: Vec::new(),
+        });
+
+        self.tables.len() - 1
+    }
+
+    pub fn iter<'a>(&'a self, from: usize) -> Box<Iterator<Item = &'a Symbol> + 'a> {
+        let it = self.tables[from].symbols.iter();
+
+        if let Some(parent) = &self.tables[from].parent {
+            let it2 = self.tables[*parent].symbols.iter();
+
+            return Box::new(it2.chain(it));
+        }
+
+        Box::new(it)
+    }
+}
+
+impl Table {
     pub fn new() -> Self {
         Self {
             parent: None,
@@ -18,33 +50,29 @@ impl SymbolTable {
         }
     }
 
-    pub fn with_parent(parent: &Rc<RefCell<SymbolTable>>) -> Self {
+    pub fn with_parent(parent: usize) -> Self {
         Self {
-            parent: Some(Rc::downgrade(parent)),
+            parent: Some(parent),
             symbols: Vec::new(),
         }
     }
-
-    // pub fn iter<'a>(&'a self) -> Box<Iterator<Item = &'a Symbol> + 'a> {
-    //     let it = self.symbols.iter();
-    //
-    //     if let Some(parent) = &self.parent {
-    //         if let Some(parent) = parent.upgrade() {
-    //             let it2 = parent.borrow().iter();
-    //
-    //             return Box::new(it2.chain(it));
-    //         }
-    //     }
-    //
-    //     Box::new(it)
-    // }
 }
 
 #[derive(Debug)]
 pub struct Symbol {
     pub id: String,
-    pub address: u32,
+    pub address: usize,
     pub kind: SymbolKind,
+}
+
+impl Symbol {
+    pub fn is_function(&self) -> bool {
+        if let SymbolKind::Function { .. } = self.kind {
+            return true;
+        }
+
+        false
+    }
 }
 
 #[derive(Debug)]
@@ -57,8 +85,8 @@ pub enum SymbolKind {
         size: u32,
     },
     Function {
-        nb_arguments: u32,
-        symbol_table: Rc<RefCell<SymbolTable>>,
+        nb_arguments: usize,
+        symbol_table: usize,
     },
 }
 

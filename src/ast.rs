@@ -23,12 +23,12 @@ pub enum Type {
 }
 
 impl Type {
-    pub fn size(self) -> u32 {
+    pub fn size(self) -> usize {
         use std::mem::size_of;
         use Type::*;
 
         match self {
-            Integer => size_of::<Number>() as u32,
+            Integer => size_of::<Number>(),
         }
     }
 }

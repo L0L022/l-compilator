@@ -44,11 +44,7 @@ fn test(filename: &str) {
         let tab_file = read(tab_file).unwrap();
         let mut generated_tab = Vec::with_capacity(tab_file.capacity());
 
-        analyse
-            .unwrap()
-            .borrow()
-            .as_table(&mut generated_tab)
-            .unwrap();
+        analyse.unwrap().as_table(&mut generated_tab).unwrap();
 
         print!("{}", String::from_utf8_lossy(&generated_tab));
 

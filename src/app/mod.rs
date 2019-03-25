@@ -75,7 +75,6 @@ impl App {
 
         p.parse(l)?
             .analyse()?
-            .borrow()
             .as_table(&mut std::io::stdout().lock())?;
 
         Ok(())

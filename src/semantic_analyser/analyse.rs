@@ -3,8 +3,7 @@ use crate::symbol_table::Scope;
 use crate::symbol_table::Symbol;
 use crate::symbol_table::SymbolKind;
 use crate::symbol_table::SymbolTable;
-use std::cell::RefCell;
-use std::rc::Rc;
+use crate::symbol_table::Table;
 
 #[derive(Debug, Fail)]
 #[fail(display = "semantic(s) error occured: {:?}", diagnostics)]
@@ -36,21 +35,27 @@ mod diagnostic {
     }
 }
 
-pub struct Data {
-    pub table: Rc<RefCell<SymbolTable>>,
+pub struct Data<'t> {
+    pub symbol_table: &'t mut SymbolTable,
+    pub current_table: usize,
     pub errors: Vec<diagnostic::Diagnostic>,
     pub scope: Scope,
-    pub address: u32,
+    pub address: usize,
 }
 
-impl Data {
-    pub fn new(table: &Rc<RefCell<SymbolTable>>) -> Self {
+impl<'t> Data<'t> {
+    pub fn new(symbol_table: &'t mut SymbolTable) -> Self {
         Self {
-            table: Rc::clone(table),
+            symbol_table,
+            current_table: 0,
             errors: Vec::new(),
             scope: Scope::Global,
             address: 0,
         }
+    }
+
+    pub fn table(&mut self) -> &mut Table {
+        &mut self.symbol_table.tables[self.current_table]
     }
 }
 
@@ -70,7 +75,7 @@ impl Analyse for Program {
     fn analyse(&self, d: &mut Data) {
         self.0.analyse(d);
 
-        let main_exists = d.table.borrow().symbols.iter().any(|symbol| {
+        let main_exists = d.symbol_table.global().symbols.iter().any(|symbol| {
             if let SymbolKind::Function { .. } = symbol.kind {
                 if symbol.id == "main" {
                     return true;
@@ -95,16 +100,16 @@ impl Analyse for Statement {
         match self {
             DclVariable(v) => v.analyse(d),
             DclFunction(id, args, vars, instructions) => {
-                let table = Rc::new(RefCell::new(SymbolTable::with_parent(&d.table)));
-                d.table.borrow_mut().symbols.push(Symbol {
+                let table = d.symbol_table.new_table(Some(d.current_table));
+                d.table().symbols.push(Symbol {
                     id: id.clone(),
                     address: 0,
                     kind: SymbolKind::Function {
-                        nb_arguments: args.len() as u32,
-                        symbol_table: table.clone(),
+                        nb_arguments: args.len(),
+                        symbol_table: table,
                     },
                 });
-                d.table = table.clone();
+                d.current_table = table;
 
                 d.scope = Scope::Argument;
                 d.address = 0;
@@ -116,14 +121,8 @@ impl Analyse for Statement {
 
                 instructions.analyse(d);
 
-                let p = if let Some(p) = &d.table.borrow().parent {
-                    p.upgrade()
-                } else {
-                    None
-                };
-
-                if let Some(p) = p {
-                    d.table = p.clone();
+                if let Some(parent) = d.table().parent {
+                    d.current_table = parent;
                 }
             }
         }
@@ -144,11 +143,12 @@ impl Analyse for Variable {
 impl Analyse for Scalar {
     fn analyse(&self, d: &mut Data) {
         let (t, id) = self;
-        d.table.borrow_mut().symbols.push(Symbol {
+        let s = Symbol {
             id: id.clone(),
             address: d.address,
             kind: SymbolKind::Scalar { scope: d.scope },
-        });
+        };
+        d.table().symbols.push(s);
         d.address += t.size();
     }
 }
@@ -156,33 +156,129 @@ impl Analyse for Scalar {
 impl Analyse for Vector {
     fn analyse(&self, d: &mut Data) {
         let (t, size, id) = self;
-        d.table.borrow_mut().symbols.push(Symbol {
+        let s = Symbol {
             id: id.clone(),
             address: d.address,
             kind: SymbolKind::Vector {
                 scope: d.scope,
                 size: *size,
             },
-        });
-        d.address += t.size() * size;
+        };
+        d.table().symbols.push(s);
+        d.address += t.size() * (*size) as usize;
     }
 }
 
 impl Analyse for Instruction {
     fn analyse(&self, d: &mut Data) {
         use Instruction::*;
+
+        match self {
+            Affectation(lv, e) => {
+                lv.analyse(d);
+                e.analyse(d);
+            }
+            CallFunction(c) => {
+                c.analyse(d);
+            }
+            Return(e) => {
+                e.analyse(d);
+            }
+            If(e, i1, i2) => {
+                e.analyse(d);
+                i1.analyse(d);
+                i2.analyse(d);
+            }
+            While(e, i) => {
+                e.analyse(d);
+                i.analyse(d);
+            }
+            WriteFunction(e) => {
+                e.analyse(d);
+            }
+            NOP => {}
+        }
     }
 }
 
 impl Analyse for Expression {
     fn analyse(&self, d: &mut Data) {
         use Expression::*;
+
+        match self {
+            Value(_) => {}
+            LeftValue(lv) => {
+                lv.analyse(d);
+            }
+            CallFunction(c) => {
+                c.analyse(d);
+            }
+            ReadFunction => {}
+            UnaryOperation(_, e) => {
+                e.analyse(d);
+            }
+            BinaryOperation(_, e1, e2) => {
+                e1.analyse(d);
+                e2.analyse(d);
+            }
+        }
     }
 }
 
 impl Analyse for LeftValue {
     fn analyse(&self, d: &mut Data) {
         use LeftValue::*;
+        use SymbolKind::*;
+
+        match self {
+            Variable(id) => {
+                // TODO vérifier l'ordre, utiliser un rev ?
+                let symbol = d
+                    .symbol_table
+                    .iter(d.current_table)
+                    .find(|symbol| symbol.id == *id && !symbol.is_function());
+
+                if let Some(symbol) = symbol {
+                    match symbol.kind {
+                        Scalar { .. } => {
+                            return;
+                        }
+                        Vector { .. } => {
+                            d.errors.push(diagnostic::Diagnostic::Error(
+                                diagnostic::Error::VectorWithoutIndice,
+                            ));
+                            return;
+                        }
+                        Function { .. } => unreachable!(),
+                    }
+                }
+            }
+            VariableAt(id, _) => {
+                // TODO vérifier l'ordre, utiliser un rev ?
+                let symbol = d
+                    .symbol_table
+                    .iter(d.current_table)
+                    .find(|symbol| symbol.id == *id && !symbol.is_function());
+
+                if let Some(symbol) = symbol {
+                    match symbol.kind {
+                        Scalar { .. } => {
+                            d.errors.push(diagnostic::Diagnostic::Error(
+                                diagnostic::Error::ScalarWithIndice,
+                            ));
+                            return;
+                        }
+                        Vector { .. } => {
+                            return;
+                        }
+                        Function { .. } => unreachable!(),
+                    }
+                }
+            }
+        }
+
+        d.errors
+            .push(diagnostic::Diagnostic::Error(diagnostic::Error::Undeclared));
     }
 }
 
@@ -190,14 +286,23 @@ impl Analyse for CallFunction {
     fn analyse(&self, d: &mut Data) {
         let (id, expressions) = self;
 
-        let exists = d.table.borrow().symbols.iter().any(|symbol| {
-            if let SymbolKind::Function { .. } = symbol.kind {
-                if symbol.id == *id {
-                    return true;
-                }
-            }
+        let symbol = d
+            .symbol_table
+            .iter(d.current_table)
+            .find(|symbol| symbol.id == *id && symbol.is_function());
 
-            false
-        });
+        if let Some(symbol) = symbol {
+            if let SymbolKind::Function { nb_arguments, .. } = symbol.kind {
+                if nb_arguments != expressions.len() {
+                    d.errors.push(diagnostic::Diagnostic::Error(
+                        diagnostic::Error::InvalidFunctionArguments,
+                    ));
+                }
+                return;
+            }
+        }
+
+        d.errors
+            .push(diagnostic::Diagnostic::Error(diagnostic::Error::Undeclared));
     }
 }
