@@ -27,7 +27,7 @@ impl SymbolTable {
 #[derive(Debug)]
 pub struct Symbol {
     pub id: String,
-    pub address: i32,
+    pub address: u32,
     pub kind: SymbolKind,
 }
 
@@ -38,10 +38,10 @@ pub enum SymbolKind {
     },
     Vector {
         scope: Scope,
-        size: i32,
+        size: u32,
     },
     Function {
-        nb_arguments: i32,
+        nb_arguments: u32,
         symbol_table: Rc<RefCell<SymbolTable>>,
     },
 }

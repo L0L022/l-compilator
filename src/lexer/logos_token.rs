@@ -112,7 +112,7 @@ impl LogosToken {
         let token = match self {
             End => unreachable!(),
             Error => return Err(UndefinedBehavior {}.into()),
-            Number => T::Number(token.parse::<i32>()?),
+            Number => T::Number(token.parse()?),
             Id => T::Id(token.to_string()),
             Comment => unreachable!(),
             Comma => T::Comma,

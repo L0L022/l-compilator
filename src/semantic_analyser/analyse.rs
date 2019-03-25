@@ -40,7 +40,7 @@ pub struct Data {
     pub table: Rc<RefCell<SymbolTable>>,
     pub errors: Vec<diagnostic::Diagnostic>,
     pub scope: Scope,
-    pub address: i32,
+    pub address: u32,
 }
 
 impl Data {
@@ -84,7 +84,7 @@ impl Analyse for Statement {
                     id: id.to_string(),
                     address: 0,
                     kind: SymbolKind::Function {
-                        nb_arguments: args.len() as i32,
+                        nb_arguments: args.len() as u32,
                         symbol_table: table.clone(),
                     },
                 });
@@ -127,19 +127,19 @@ impl Analyse for Variable {
 
 impl Analyse for Scalar {
     fn analyse(&self, d: &mut Data) {
-        let (_, id) = self;
+        let (t, id) = self;
         d.table.borrow_mut().symbols.push(Symbol {
             id: id.to_string(),
             address: d.address,
             kind: SymbolKind::Scalar { scope: d.scope },
         });
-        d.address += 4;
+        d.address += t.size();
     }
 }
 
 impl Analyse for Vector {
     fn analyse(&self, d: &mut Data) {
-        let (_, size, id) = self;
+        let (t, size, id) = self;
         d.table.borrow_mut().symbols.push(Symbol {
             id: id.to_string(),
             address: d.address,
@@ -148,7 +148,7 @@ impl Analyse for Vector {
                 size: *size,
             },
         });
-        d.address += 4 * size;
+        d.address += t.size() * size;
     }
 }
 

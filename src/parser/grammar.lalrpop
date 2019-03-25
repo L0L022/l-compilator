@@ -102,8 +102,8 @@ ExpressionL7 = {
 };
 
 AtomicExpression : Expression = {
-    Number => Expression::Value(<>),
-    "-" <Number> => Expression::Value(-<>),
+    Number => Expression::Value(<> as Number),
+    "-" <Number> => Expression::Value(-(<> as Number)),
     LeftValue => Expression::LeftValue(<>),
     CallFunction => Expression::CallFunction(<>),
     ReadFunction "(" ")" => Expression::ReadFunction,
@@ -140,7 +140,7 @@ extern {
     type Error = Error;
 
     enum Token {
-        Number => T::Number(<i32>),
+        Number => T::Number(<u32>),
         Id => T::Id(<String>),
         "," => T::Comma,
         ";" => T::Semicolon,

@@ -1,4 +1,5 @@
 #[derive(Debug)]
+
 pub struct Program(pub Vec<Statement>);
 
 #[derive(Debug, Clone)]
@@ -14,11 +15,22 @@ pub enum Variable {
 }
 
 pub type Scalar = (Type, Id);
-pub type Vector = (Type, Number, Id);
+pub type Vector = (Type, u32, Id);
 
 #[derive(Debug, Copy, Clone)]
 pub enum Type {
     Integer,
+}
+
+impl Type {
+    pub fn size(self) -> u32 {
+        use std::mem::size_of;
+        use Type::*;
+
+        match self {
+            Integer => size_of::<Number>() as u32,
+        }
+    }
 }
 
 pub type Id = String;
