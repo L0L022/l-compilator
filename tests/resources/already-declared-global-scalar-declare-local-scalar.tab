@@ -1,0 +1,9 @@
+------------------------------------------
+base = 4
+sommet = 5
+0 $a GLOBALE ENTIER 0 1
+1 $b GLOBALE TABLEAU 4 20
+2 $c GLOBALE ENTIER 84 1
+3 main GLOBALE FONCTION 0 0
+4 $a LOCALE ENTIER 0 1
+------------------------------------------

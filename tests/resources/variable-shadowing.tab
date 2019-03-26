@@ -1,0 +1,7 @@
+------------------------------------------
+base = 2
+sommet = 3
+0 $a GLOBALE TABLEAU 0 10
+1 main GLOBALE FONCTION 0 0
+2 $a LOCALE ENTIER 0 1
+------------------------------------------

@@ -1,0 +1,13 @@
+------------------------------------------
+base = 2
+sommet = 2
+0 $a GLOBALE ENTIER 0 1
+1 foo GLOBALE FONCTION 0 0
+------------------------------------------
+------------------------------------------
+base = 3
+sommet = 3
+0 $a GLOBALE ENTIER 0 1
+1 foo GLOBALE FONCTION 0 0
+2 main GLOBALE FONCTION 0 0
+------------------------------------------

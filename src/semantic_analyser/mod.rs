@@ -8,6 +8,8 @@ pub trait Analyse {
     fn analyse(&self) -> Fallible<SymbolTable>;
 }
 
+// TODO return warning
+
 impl<T: analyse::Analyse> Analyse for T {
     fn analyse(&self) -> Fallible<SymbolTable> {
         let mut symbol_table = SymbolTable::new();

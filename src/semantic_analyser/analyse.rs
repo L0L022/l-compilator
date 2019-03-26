@@ -57,6 +57,30 @@ impl<'t> Data<'t> {
     pub fn table(&mut self) -> &mut Table {
         &mut self.symbol_table.tables[self.current_table]
     }
+
+    fn already_declared(&self, id: &str) -> bool {
+        self.symbol_table.iter(self.current_table).any(|symbol| {
+            if symbol.is_function() || symbol.id != id {
+                return false;
+            }
+
+            let scope = match symbol.kind {
+                SymbolKind::Scalar { scope, .. } => scope,
+                SymbolKind::Vector { scope, .. } => scope,
+                SymbolKind::Function { .. } => unreachable!(),
+            };
+
+            if self.scope == scope {
+                return true;
+            }
+
+            if self.scope == Scope::Local && scope == Scope::Argument {
+                return true;
+            }
+
+            false
+        })
+    }
 }
 
 pub trait Analyse {
@@ -140,6 +164,14 @@ impl Analyse for Variable {
 impl Analyse for Scalar {
     fn analyse(&self, d: &mut Data) {
         let (t, id) = self;
+
+        if d.already_declared(id) {
+            d.errors.push(diagnostic::Diagnostic::Error(
+                diagnostic::Error::AlreadyDeclared,
+            ));
+            return;
+        }
+
         let s = Symbol {
             id: id.clone(),
             address: d.address,
@@ -153,6 +185,14 @@ impl Analyse for Scalar {
 impl Analyse for Vector {
     fn analyse(&self, d: &mut Data) {
         let (t, size, id) = self;
+
+        if d.already_declared(id) {
+            d.errors.push(diagnostic::Diagnostic::Error(
+                diagnostic::Error::AlreadyDeclared,
+            ));
+            return;
+        }
+
         let s = Symbol {
             id: id.clone(),
             address: d.address,
