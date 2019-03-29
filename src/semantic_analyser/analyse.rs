@@ -58,7 +58,7 @@ impl<'t> Data<'t> {
         &mut self.symbol_table.tables[self.current_table]
     }
 
-    fn already_declared(&self, id: &str) -> bool {
+    fn already_declared_variable(&self, id: &str) -> bool {
         self.symbol_table.iter(self.current_table).any(|symbol| {
             if symbol.is_function() || symbol.id != id {
                 return false;
@@ -121,6 +121,18 @@ impl Analyse for Statement {
         match self {
             DclVariable(v) => v.analyse(d),
             DclFunction(id, args, vars, instructions) => {
+                let exists = d
+                    .symbol_table
+                    .iter(d.current_table)
+                    .any(|symbol| symbol.is_function() && symbol.id == *id);
+
+                if exists {
+                    d.errors.push(diagnostic::Diagnostic::Error(
+                        diagnostic::Error::AlreadyDeclared,
+                    ));
+                    return;
+                }
+
                 let table = d.symbol_table.new_table(Some(d.current_table));
                 d.table().symbols.push(Symbol {
                     id: id.clone(),

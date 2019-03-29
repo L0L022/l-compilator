@@ -109,6 +109,31 @@ fn declared_local_scalar() {
     test("declared-local-scalar");
 }
 
+#[test]
+fn already_declared_function_err() {
+    test("already-declared-function-err");
+}
+
+#[test]
+fn function_polymorphism() {
+    test("function-polymorphism");
+}
+
+#[test]
+fn invalid_function_argument_less() {
+    test("invalid-function-argument-less");
+}
+
+#[test]
+fn invalid_function_argument_more() {
+    test("invalid-function-argument-more");
+}
+
+#[test]
+fn undeclared_function() {
+    test("undeclared-function");
+}
+
 fn test(filename: &str) {
     let l_file = read_to_string(format!("tests/resources/{}.l", filename)).unwrap();
     let tab_file = format!("tests/resources/{}.tab", filename);
