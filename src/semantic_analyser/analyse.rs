@@ -177,7 +177,7 @@ impl Analyse for Scalar {
     fn analyse(&self, d: &mut Data) {
         let (t, id) = self;
 
-        if d.already_declared(id) {
+        if d.already_declared_variable(id) {
             d.errors.push(diagnostic::Diagnostic::Error(
                 diagnostic::Error::AlreadyDeclared,
             ));
@@ -198,7 +198,7 @@ impl Analyse for Vector {
     fn analyse(&self, d: &mut Data) {
         let (t, size, id) = self;
 
-        if d.already_declared(id) {
+        if d.already_declared_variable(id) {
             d.errors.push(diagnostic::Diagnostic::Error(
                 diagnostic::Error::AlreadyDeclared,
             ));

@@ -1,20 +1,127 @@
-struct Constant(i32);
-struct Label(String);
-struct TempVar(u32);
-struct Variable(String);
+#[derive(Debug, Clone)]
+pub struct Constant(pub i32);
 
-enum CTV {
+#[derive(Debug, Clone)]
+pub struct Label(pub String);
+
+#[derive(Debug, Clone)]
+pub struct Temp(pub u32);
+
+#[derive(Debug, Clone)]
+pub struct Variable {
+    pub id: String,
+    pub indice: Option<CT>,
+}
+
+#[derive(Debug, Clone)]
+pub enum CTV {
     C(Constant),
-    T(TempVar),
+    T(Temp),
     V(Variable),
 }
 
-enum TV {
-    T(TempVar),
+impl CTV {
+    pub fn is_constant(&self) -> bool {
+        match self {
+            CTV::C(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_temp(&self) -> bool {
+        match self {
+            CTV::T(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_variable(&self) -> bool {
+        match self {
+            CTV::V(_) => true,
+            _ => false,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum TV {
+    T(Temp),
     V(Variable),
 }
 
-enum Instruction {
+#[derive(Debug, Clone)]
+pub enum CT {
+    C(Constant),
+    T(Temp),
+}
+
+impl From<Constant> for CTV {
+    fn from(c: Constant) -> Self {
+        CTV::C(c)
+    }
+}
+
+impl From<Temp> for CTV {
+    fn from(t: Temp) -> Self {
+        CTV::T(t)
+    }
+}
+
+impl From<Variable> for CTV {
+    fn from(v: Variable) -> Self {
+        CTV::V(v)
+    }
+}
+
+impl From<TV> for CTV {
+    fn from(tv: TV) -> Self {
+        match tv {
+            TV::T(t) => CTV::T(t),
+            TV::V(v) => CTV::V(v),
+        }
+    }
+}
+
+impl From<CT> for CTV {
+    fn from(ct: CT) -> Self {
+        match ct {
+            CT::C(c) => CTV::C(c),
+            CT::T(t) => CTV::T(t),
+        }
+    }
+}
+
+impl From<Temp> for TV {
+    fn from(t: Temp) -> Self {
+        TV::T(t)
+    }
+}
+
+impl From<Variable> for TV {
+    fn from(v: Variable) -> Self {
+        TV::V(v)
+    }
+}
+
+impl From<Constant> for CT {
+    fn from(c: Constant) -> Self {
+        CT::C(c)
+    }
+}
+
+impl From<Temp> for CT {
+    fn from(t: Temp) -> Self {
+        CT::T(t)
+    }
+}
+
+pub struct Instruction {
+    pub label: Option<Label>,
+    pub kind: InstructionKind,
+    pub comment: Option<String>,
+}
+
+pub enum InstructionKind {
     Arithmetic {
         operator: ArithmeticOperator,
         left: CTV,
@@ -26,7 +133,7 @@ enum Instruction {
         result: TV,
     },
     Allocation {
-        variable: Variable,
+        variable: Option<Variable>,
         size: Constant,
     },
     ReadFunction {
@@ -37,6 +144,7 @@ enum Instruction {
     },
     FunctionCall {
         function: Label,
+        result: TV,
     },
     FunctionBegin,
     FunctionEnd,
@@ -53,18 +161,18 @@ enum Instruction {
         condition: JumpIfCondition,
         left: CTV,
         right: CTV,
-        goto: Label,
+        label: Label,
     },
 }
 
-enum ArithmeticOperator {
+pub enum ArithmeticOperator {
     Addition,
     Subtraction,
     Multiplication,
     Division,
 }
 
-enum JumpIfCondition {
+pub enum JumpIfCondition {
     Less,
     LessOrEqual,
     Equal,

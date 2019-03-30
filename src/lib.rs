@@ -10,10 +10,12 @@ extern crate structopt;
 mod app;
 mod ast;
 mod format;
+mod gen_three_address_code;
 mod lexer;
 mod parser;
 mod semantic_analyser;
 mod symbol_table;
+mod three_address_code;
 mod token;
 
 pub use app::App;
