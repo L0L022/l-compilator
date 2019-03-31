@@ -31,6 +31,14 @@ impl Data {
         self.temp_count += 1;
         t
     }
+
+    fn comment(&mut self, comment: &str) {
+        self.instructions.push(Instruction {
+            label: None,
+            kind: InstructionKind::NOP,
+            comment: Some(comment.to_owned()),
+        })
+    }
 }
 
 impl Into<ThreeAddressCode> for Data {
@@ -65,7 +73,7 @@ impl Gen<()> for ast::Statement {
                 d.instructions.push(Instruction {
                     label: Some(Label::new(format!("f{}", id))),
                     kind: InstructionKind::FunctionBegin,
-                    comment: None,
+                    comment: Some(format!("début fonction {}", id)),
                 });
 
                 vars.gen(d);
@@ -74,7 +82,7 @@ impl Gen<()> for ast::Statement {
                 d.instructions.push(Instruction {
                     label: None,
                     kind: InstructionKind::FunctionEnd,
-                    comment: None,
+                    comment: Some(format!("fin fonction {}", id)),
                 });
             }
         }
@@ -144,7 +152,7 @@ impl Gen<()> for ast::Instruction {
                 d.instructions.push(Instruction {
                     label: None,
                     kind: InstructionKind::FunctionReturn { value },
-                    comment: None,
+                    comment: Some(format!("retourne {}", e)),
                 });
                 d.instructions.push(Instruction {
                     label: None,
@@ -165,7 +173,7 @@ impl Gen<()> for ast::Instruction {
                         right: Constant::new(false).into(),
                         label: l_else.clone(),
                     },
-                    comment: None,
+                    comment: Some(format!("si {}", e)),
                 });
                 i1.gen(d);
                 d.instructions.push(Instruction {
@@ -178,13 +186,13 @@ impl Gen<()> for ast::Instruction {
                 d.instructions.push(Instruction {
                     label: Some(l_else),
                     kind: InstructionKind::NOP,
-                    comment: None,
+                    comment: Some("sinon".to_owned()),
                 });
                 i2.gen(d);
                 d.instructions.push(Instruction {
                     label: Some(l_end),
                     kind: InstructionKind::NOP,
-                    comment: None,
+                    comment: Some("fin si".to_owned()),
                 });
             }
             While(e, i) => {
@@ -194,7 +202,7 @@ impl Gen<()> for ast::Instruction {
                 d.instructions.push(Instruction {
                     label: Some(l_begin.clone()),
                     kind: InstructionKind::NOP,
-                    comment: None,
+                    comment: Some(format!("tantque {}", e)),
                 });
                 let left = e.gen(d);
                 d.instructions.push(Instruction {
@@ -205,7 +213,7 @@ impl Gen<()> for ast::Instruction {
                         right: Constant::new(false).into(),
                         label: l_end.clone(),
                     },
-                    comment: None,
+                    comment: Some("sort tantque".to_owned()),
                 });
                 i.gen(d);
                 d.instructions.push(Instruction {
@@ -216,7 +224,7 @@ impl Gen<()> for ast::Instruction {
                 d.instructions.push(Instruction {
                     label: Some(l_end),
                     kind: InstructionKind::NOP,
-                    comment: None,
+                    comment: Some("fin tantque".to_owned()),
                 });
             }
             WriteFunction(e) => {
@@ -272,7 +280,7 @@ impl Gen<CTV> for ast::Expression {
                                 value: Constant::new(false).into(),
                                 result: result.clone().into(),
                             },
-                            comment: None,
+                            comment: Some(format!("début {}", self)),
                         });
                         d.instructions.push(Instruction {
                             label: None,
@@ -295,7 +303,7 @@ impl Gen<CTV> for ast::Expression {
                         d.instructions.push(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
-                            comment: None,
+                            comment: Some(format!("fin {}", self)),
                         });
 
                         result.into()
@@ -326,7 +334,7 @@ impl Gen<CTV> for ast::Expression {
                                 right,
                                 result: result.clone().into(),
                             },
-                            comment: None,
+                            comment: Some(format!("{}", self)),
                         });
 
                         result.into()
@@ -342,7 +350,7 @@ impl Gen<CTV> for ast::Expression {
                                 value: Constant::new(false).into(),
                                 result: result.clone().into(),
                             },
-                            comment: None,
+                            comment: Some(format!("début {}", self)),
                         });
                         d.instructions.push(Instruction {
                             label: None,
@@ -376,7 +384,7 @@ impl Gen<CTV> for ast::Expression {
                         d.instructions.push(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
-                            comment: None,
+                            comment: Some(format!("fin {}", self)),
                         });
 
                         result.into()
@@ -392,7 +400,7 @@ impl Gen<CTV> for ast::Expression {
                                 value: Constant::new(true).into(),
                                 result: result.clone().into(),
                             },
-                            comment: None,
+                            comment: Some(format!("début {}", self)),
                         });
                         d.instructions.push(Instruction {
                             label: None,
@@ -426,7 +434,7 @@ impl Gen<CTV> for ast::Expression {
                         d.instructions.push(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
-                            comment: None,
+                            comment: Some(format!("fin {}", self)),
                         });
 
                         result.into()
@@ -448,7 +456,7 @@ impl Gen<CTV> for ast::Expression {
                                 value: Constant::new(true).into(),
                                 result: result.clone().into(),
                             },
-                            comment: None,
+                            comment: Some(format!("début {}", self)),
                         });
                         d.instructions.push(Instruction {
                             label: None,
@@ -471,7 +479,7 @@ impl Gen<CTV> for ast::Expression {
                         d.instructions.push(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
-                            comment: None,
+                            comment: Some(format!("fin {}", self)),
                         });
 
                         result.into()
@@ -514,7 +522,7 @@ impl Gen<Variable> for ast::LeftValue {
 
 impl Gen<CTV> for ast::CallFunction {
     fn gen(&self, d: &mut Data) -> CTV {
-        let (id, arguments) = self;
+        let (id, arguments) = (&self.0, &self.1);
 
         d.instructions.push(Instruction {
             label: None,
@@ -522,7 +530,7 @@ impl Gen<CTV> for ast::CallFunction {
                 variable: None,
                 size: Constant::new(1),
             },
-            comment: Some("alloue place pour la valeur de retour".to_string()),
+            comment: Some(format!("début appel {}", id)),
         });
 
         for arg in arguments {
@@ -542,7 +550,7 @@ impl Gen<CTV> for ast::CallFunction {
                 function: Label::new(format!("f{}", id)),
                 result: result.clone().into(),
             },
-            comment: None,
+            comment: Some(format!("fin appel {}", id)),
         });
 
         result.into()

@@ -331,7 +331,7 @@ impl Analyse for LeftValue {
 
 impl Analyse for CallFunction {
     fn analyse(&self, d: &mut Data) {
-        let (id, expressions) = self;
+        let (id, expressions) = (&self.0, &self.1);
 
         let symbol = d
             .symbol_table

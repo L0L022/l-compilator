@@ -291,7 +291,7 @@ impl Asynt for CallFunction {
 
     fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         let spaces = " ".repeat(indent);
-        let (id, args) = self;
+        let (id, args) = (&self.0, &self.1);
 
         writeln!(f, "{}{}", spaces, id)?;
         args.to_asynt(f, indent)

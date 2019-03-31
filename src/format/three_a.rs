@@ -80,15 +80,30 @@ impl ThreeA for CT {
 
 impl ThreeA for Instruction {
     fn three_a(&self, f: &mut dyn Write) -> io::Result<()> {
-        use InstructionKind::*;
-
         match &self.label {
             Some(label) => write!(f, " >{:8}", label.label())?,
             None => write!(f, "{:10}", "")?,
         }
         write!(f, " : ")?;
 
-        match &self.kind {
+        const LINE_LENGTH: usize = 50;
+        let mut instr = Vec::with_capacity(LINE_LENGTH);
+        self.kind.three_a(&mut instr)?;
+        write!(f, "{:1$}", String::from_utf8_lossy(&instr), LINE_LENGTH)?;
+
+        if let Some(comment) = &self.comment {
+            write!(f, "; {}", comment)?;
+        }
+
+        Ok(())
+    }
+}
+
+impl ThreeA for InstructionKind {
+    fn three_a(&self, f: &mut dyn Write) -> io::Result<()> {
+        use InstructionKind::*;
+
+        match self {
             Arithmetic {
                 operator,
                 left,
@@ -175,10 +190,6 @@ impl ThreeA for Instruction {
                 label.three_a(f)?;
             }
             NOP => {}
-        }
-
-        if let Some(comment) = &self.comment {
-            write!(f, "\t\t; {}", comment)?;
         }
 
         Ok(())

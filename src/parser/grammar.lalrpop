@@ -114,7 +114,7 @@ LeftValue : LeftValue = <i:Id> <o:("[" <Expression> "]")?> => match o {
         None => LeftValue::Variable(i),
 };
 
-CallFunction : CallFunction = <Id> "(" <CommaMult<Expression>> ")" => (<>);
+CallFunction : CallFunction = <Id> "(" <CommaMult<Expression>> ")" => CallFunction(<>);
 
 CommaMult<T>: ::std::vec::Vec<T> = {
     <v:(<T> ",")*> <e:T?> => match e {
