@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -27,15 +28,23 @@ impl Label {
 }
 
 #[derive(Debug, Clone)]
-pub struct Temp(u32);
+pub struct Temp(u32, Rc<RefCell<i32>>);
 
 impl Temp {
     pub fn new<T: Into<u32>>(t: T) -> Self {
-        Temp(t.into())
+        Temp(t.into(), Rc::new(RefCell::new(-1)))
     }
 
     pub fn temp(&self) -> u32 {
         self.0
+    }
+
+    pub fn last_use(&self) -> i32 {
+        *self.1.borrow()
+    }
+
+    pub fn set_last_use(&self, last_use: i32) {
+        *self.1.borrow_mut() = last_use;
     }
 }
 

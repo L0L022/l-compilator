@@ -32,12 +32,89 @@ impl Data {
         t
     }
 
-    fn comment(&mut self, comment: &str) {
-        self.instructions.push(Instruction {
-            label: None,
-            kind: InstructionKind::NOP,
-            comment: Some(comment.to_owned()),
-        })
+    fn add_instr(&mut self, instr: Instruction) {
+        use InstructionKind::*;
+
+        let last_use = self.instructions.len() as i32;
+
+        let ct_set_last_use = |ct: &CT| {
+            if let CT::T(t) = ct {
+                t.set_last_use(last_use);
+            }
+        };
+        let v_set_last_use = |v: &Variable| {
+            if let Some(indice) = v.indice() {
+                ct_set_last_use(indice);
+            }
+        };
+        let tv_set_last_use = |tv: &TV, is_right: bool| match tv {
+            TV::T(t) => {
+                if is_right {
+                    t.set_last_use(last_use)
+                }
+            }
+            TV::V(v) => v_set_last_use(v),
+        };
+        let ctv_set_last_use = |ctv: &CTV, is_right: bool| match ctv {
+            CTV::T(t) => {
+                if is_right {
+                    t.set_last_use(last_use)
+                }
+            }
+            CTV::V(v) => v_set_last_use(v),
+            _ => {}
+        };
+
+        match &instr.kind {
+            Arithmetic {
+                operator: _,
+                left,
+                right,
+                result,
+            } => {
+                ctv_set_last_use(left, true);
+                ctv_set_last_use(right, true);
+                tv_set_last_use(result, false);
+            }
+            Affectation { value, result } => {
+                ctv_set_last_use(value, true);
+                tv_set_last_use(result, false);
+            }
+            Allocation { .. } => {}
+            ReadFunction { result } => {
+                tv_set_last_use(result, false);
+            }
+            WriteFunction { value } => {
+                ctv_set_last_use(value, true);
+            }
+            FunctionCall {
+                function: _,
+                result,
+            } => {
+                tv_set_last_use(result, false);
+            }
+            FunctionBegin => {}
+            FunctionEnd => {}
+            FunctionPushArg { arg } => {
+                ctv_set_last_use(arg, true);
+            }
+            FunctionReturn { value } => {
+                ctv_set_last_use(value, true);
+            }
+            Jump { .. } => {}
+            JumpIf {
+                condition: _,
+                left,
+                right,
+                label: _,
+            } => {
+                ctv_set_last_use(left, true);
+                ctv_set_last_use(right, true);
+            }
+            NOP => {}
+        }
+
+        self.instructions.push(instr);
     }
 }
 
@@ -70,7 +147,7 @@ impl Gen<()> for ast::Statement {
         match self {
             DclVariable(v) => v.gen(d),
             DclFunction(id, args, vars, instructions) => {
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: Some(Label::new(format!("f{}", id))),
                     kind: InstructionKind::FunctionBegin,
                     comment: Some(format!("début fonction {}", id)),
@@ -79,7 +156,7 @@ impl Gen<()> for ast::Statement {
                 vars.gen(d);
                 instructions.gen(d);
 
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::FunctionEnd,
                     comment: Some(format!("fin fonction {}", id)),
@@ -104,7 +181,7 @@ impl Gen<()> for ast::Scalar {
     fn gen(&self, d: &mut Data) -> () {
         let (t, id) = self;
 
-        d.instructions.push(Instruction {
+        d.add_instr(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
                 variable: Some(Variable::new(format!("v{}", id), None)),
@@ -119,7 +196,7 @@ impl Gen<()> for ast::Vector {
     fn gen(&self, d: &mut Data) -> () {
         let (t, size, id) = self;
 
-        d.instructions.push(Instruction {
+        d.add_instr(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
                 variable: Some(Variable::new(format!("v{}", id), None)),
@@ -138,7 +215,7 @@ impl Gen<()> for ast::Instruction {
             Affectation(lv, e) => {
                 let result = lv.gen(d).into();
                 let value = e.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::Affectation { value, result },
                     comment: None,
@@ -149,12 +226,12 @@ impl Gen<()> for ast::Instruction {
             }
             Return(e) => {
                 let value = e.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::FunctionReturn { value },
                     comment: Some(format!("retourne {}", e)),
                 });
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::FunctionEnd,
                     comment: None,
@@ -165,7 +242,7 @@ impl Gen<()> for ast::Instruction {
                 let l_end = d.new_label();
 
                 let left = e.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::JumpIf {
                         condition: JumpIfCondition::Equal,
@@ -176,20 +253,20 @@ impl Gen<()> for ast::Instruction {
                     comment: Some(format!("si {}", e)),
                 });
                 i1.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::Jump {
                         label: l_end.clone(),
                     },
                     comment: None,
                 });
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: Some(l_else),
                     kind: InstructionKind::NOP,
                     comment: Some("sinon".to_owned()),
                 });
                 i2.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: Some(l_end),
                     kind: InstructionKind::NOP,
                     comment: Some("fin si".to_owned()),
@@ -199,13 +276,13 @@ impl Gen<()> for ast::Instruction {
                 let l_begin = d.new_label();
                 let l_end = d.new_label();
 
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: Some(l_begin.clone()),
                     kind: InstructionKind::NOP,
                     comment: Some(format!("tantque {}", e)),
                 });
                 let left = e.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::JumpIf {
                         condition: JumpIfCondition::Equal,
@@ -216,12 +293,12 @@ impl Gen<()> for ast::Instruction {
                     comment: Some("sort tantque".to_owned()),
                 });
                 i.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::Jump { label: l_begin },
                     comment: None,
                 });
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: Some(l_end),
                     kind: InstructionKind::NOP,
                     comment: Some("fin tantque".to_owned()),
@@ -229,14 +306,14 @@ impl Gen<()> for ast::Instruction {
             }
             WriteFunction(e) => {
                 let value = e.gen(d);
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::WriteFunction { value },
                     comment: None,
                 });
             }
             NOP => {
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::NOP,
                     comment: None,
@@ -256,7 +333,7 @@ impl Gen<CTV> for ast::Expression {
             CallFunction(c) => c.gen(d),
             ReadFunction => {
                 let result = d.new_temp();
-                d.instructions.push(Instruction {
+                d.add_instr(Instruction {
                     label: None,
                     kind: InstructionKind::ReadFunction {
                         result: result.clone().into(),
@@ -274,7 +351,7 @@ impl Gen<CTV> for ast::Expression {
 
                         let left = e.gen(d);
                         let result = d.new_temp();
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(false).into(),
@@ -282,7 +359,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: Some(format!("début {}", self)),
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::JumpIf {
                                 condition: JumpIfCondition::Equal,
@@ -292,7 +369,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(true).into(),
@@ -300,7 +377,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
                             comment: Some(format!("fin {}", self)),
@@ -326,7 +403,7 @@ impl Gen<CTV> for ast::Expression {
                         let left = e1.gen(d);
                         let right = e2.gen(d);
                         let result = d.new_temp();
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Arithmetic {
                                 operator,
@@ -344,7 +421,7 @@ impl Gen<CTV> for ast::Expression {
 
                         let left = e1.gen(d);
                         let result = d.new_temp();
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(false).into(),
@@ -352,7 +429,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: Some(format!("début {}", self)),
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::JumpIf {
                                 condition: JumpIfCondition::Equal,
@@ -363,7 +440,7 @@ impl Gen<CTV> for ast::Expression {
                             comment: None,
                         });
                         let left = e2.gen(d);
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::JumpIf {
                                 condition: JumpIfCondition::Equal,
@@ -373,7 +450,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(true).into(),
@@ -381,7 +458,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
                             comment: Some(format!("fin {}", self)),
@@ -394,7 +471,7 @@ impl Gen<CTV> for ast::Expression {
 
                         let left = e1.gen(d);
                         let result = d.new_temp();
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(true).into(),
@@ -402,7 +479,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: Some(format!("début {}", self)),
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::JumpIf {
                                 condition: JumpIfCondition::Equal,
@@ -413,7 +490,7 @@ impl Gen<CTV> for ast::Expression {
                             comment: None,
                         });
                         let left = e2.gen(d);
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::JumpIf {
                                 condition: JumpIfCondition::Equal,
@@ -423,7 +500,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(false).into(),
@@ -431,7 +508,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
                             comment: Some(format!("fin {}", self)),
@@ -450,7 +527,7 @@ impl Gen<CTV> for ast::Expression {
                         let left = e1.gen(d);
                         let right = e2.gen(d);
                         let result = d.new_temp();
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(true).into(),
@@ -458,7 +535,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: Some(format!("début {}", self)),
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::JumpIf {
                                 condition,
@@ -468,7 +545,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: Constant::new(false).into(),
@@ -476,7 +553,7 @@ impl Gen<CTV> for ast::Expression {
                             },
                             comment: None,
                         });
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: Some(l_end),
                             kind: InstructionKind::NOP,
                             comment: Some(format!("fin {}", self)),
@@ -502,7 +579,7 @@ impl Gen<Variable> for ast::LeftValue {
                     CTV::T(t) => CT::T(t),
                     CTV::V(v) => {
                         let result = d.new_temp();
-                        d.instructions.push(Instruction {
+                        d.add_instr(Instruction {
                             label: None,
                             kind: InstructionKind::Affectation {
                                 value: v.into(),
@@ -524,7 +601,7 @@ impl Gen<CTV> for ast::CallFunction {
     fn gen(&self, d: &mut Data) -> CTV {
         let (id, arguments) = (&self.0, &self.1);
 
-        d.instructions.push(Instruction {
+        d.add_instr(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
                 variable: None,
@@ -535,7 +612,7 @@ impl Gen<CTV> for ast::CallFunction {
 
         for arg in arguments {
             let arg = arg.gen(d);
-            d.instructions.push(Instruction {
+            d.add_instr(Instruction {
                 label: None,
                 kind: InstructionKind::FunctionPushArg { arg },
                 comment: None,
@@ -544,7 +621,7 @@ impl Gen<CTV> for ast::CallFunction {
 
         let result = d.new_temp();
 
-        d.instructions.push(Instruction {
+        d.add_instr(Instruction {
             label: None,
             kind: InstructionKind::FunctionCall {
                 function: Label::new(format!("f{}", id)),

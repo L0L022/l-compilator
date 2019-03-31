@@ -32,7 +32,7 @@ impl ThreeA for Label {
 
 impl ThreeA for Temp {
     fn three_a(&self, f: &mut dyn Write) -> io::Result<()> {
-        write!(f, "t{}", self.temp())
+        write!(f, "t{}{{{}}}", self.temp(), self.last_use())
     }
 }
 
