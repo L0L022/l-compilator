@@ -46,6 +46,8 @@ impl ThreeA for Variable {
             write!(f, "]")?;
         }
 
+        write!(f, "({})", self.address())?;
+
         Ok(())
     }
 }

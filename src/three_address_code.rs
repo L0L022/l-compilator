@@ -52,13 +52,15 @@ impl Temp {
 pub struct Variable {
     id: Rc<String>,
     indice: Option<CT>,
+    address: usize,
 }
 
 impl Variable {
-    pub fn new(id: String, indice: Option<CT>) -> Self {
+    pub fn new(id: String, indice: Option<CT>, address: usize) -> Self {
         Variable {
             id: Rc::new(id),
             indice,
+            address,
         }
     }
 
@@ -68,6 +70,10 @@ impl Variable {
 
     pub fn indice(&self) -> &Option<CT> {
         &self.indice
+    }
+
+    pub fn address(&self) -> usize {
+        self.address
     }
 }
 

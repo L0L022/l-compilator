@@ -90,8 +90,9 @@ impl App {
         let l = Lexer::new(&content);
         let p = Parser::new();
 
-        p.parse(l)?
-            .gen_three_address_code()
+        let ast = p.parse(l)?;
+        let symbol_table = ast.analyse()?;
+        ast.gen_three_address_code(&symbol_table, 0)
             .three_a(&mut std::io::stdout().lock())?;
 
         Ok(())

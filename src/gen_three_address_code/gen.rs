@@ -1,22 +1,27 @@
 use crate::ast;
+use crate::symbol_table::SymbolTable;
 use crate::three_address_code::*;
 
 pub trait Gen<T> {
     fn gen(&self, d: &mut Data) -> T;
 }
 
-pub struct Data {
+pub struct Data<'t> {
     label_count: u32,
     temp_count: u32,
     instructions: Vec<Instruction>,
+    symbol_table: &'t SymbolTable,
+    current_table: usize,
 }
 
-impl Data {
-    pub fn new() -> Self {
+impl<'t> Data<'t> {
+    pub fn new(symbol_table: &'t SymbolTable, current_table: usize) -> Self {
         Self {
             label_count: 0,
             temp_count: 0,
             instructions: Vec::new(),
+            symbol_table,
+            current_table,
         }
     }
 
@@ -116,9 +121,46 @@ impl Data {
 
         self.instructions.push(instr);
     }
+
+    fn find_address(&self, id: &String) -> usize {
+        let symbol = self
+            .symbol_table
+            .iter(self.current_table)
+            .find(|symbol| symbol.id == *id);
+
+        match symbol {
+            Some(symbol) => symbol.address,
+            None => unreachable!(),
+        }
+    }
+
+    fn enter_function(&mut self, id: &String) {
+        use crate::symbol_table::SymbolKind;
+
+        let symbol = self
+            .symbol_table
+            .iter(self.current_table)
+            .find(|symbol| symbol.id == *id && symbol.is_function());
+
+        match symbol {
+            Some(symbol) => match symbol.kind {
+                SymbolKind::Function { symbol_table, .. } => {
+                    self.current_table = symbol_table;
+                }
+                _ => unreachable!(),
+            },
+            None => unreachable!(),
+        }
+    }
+
+    fn go_back(&mut self) {
+        if let Some(parent) = self.symbol_table.tables[self.current_table].parent {
+            self.current_table = parent;
+        }
+    }
 }
 
-impl Into<ThreeAddressCode> for Data {
+impl<'t> Into<ThreeAddressCode> for Data<'t> {
     fn into(self) -> ThreeAddressCode {
         ThreeAddressCode {
             instructions: self.instructions,
@@ -147,6 +189,8 @@ impl Gen<()> for ast::Statement {
         match self {
             DclVariable(v) => v.gen(d),
             DclFunction(id, args, vars, instructions) => {
+                d.enter_function(id);
+
                 d.add_instr(Instruction {
                     label: Some(Label::new(format!("f{}", id))),
                     kind: InstructionKind::FunctionBegin,
@@ -161,6 +205,8 @@ impl Gen<()> for ast::Statement {
                     kind: InstructionKind::FunctionEnd,
                     comment: Some(format!("fin fonction {}", id)),
                 });
+
+                d.go_back();
             }
         }
     }
@@ -180,11 +226,12 @@ impl Gen<()> for ast::Variable {
 impl Gen<()> for ast::Scalar {
     fn gen(&self, d: &mut Data) -> () {
         let (t, id) = self;
+        let address = d.find_address(id);
 
         d.add_instr(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
-                variable: Some(Variable::new(format!("v{}", id), None)),
+                variable: Some(Variable::new(format!("v{}", id), None, address)),
                 size: Constant::new(t.size() as i32),
             },
             comment: None,
@@ -195,11 +242,12 @@ impl Gen<()> for ast::Scalar {
 impl Gen<()> for ast::Vector {
     fn gen(&self, d: &mut Data) -> () {
         let (t, size, id) = self;
+        let address = d.find_address(id);
 
         d.add_instr(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
-                variable: Some(Variable::new(format!("v{}", id), None)),
+                variable: Some(Variable::new(format!("v{}", id), None, address)),
                 size: Constant::new(t.size() as i32 * (*size) as i32),
             },
             comment: None,
@@ -569,8 +617,15 @@ impl Gen<CTV> for ast::Expression {
 
 impl Gen<Variable> for ast::LeftValue {
     fn gen(&self, d: &mut Data) -> Variable {
+        let id = match self {
+            ast::LeftValue::Variable(id) => id,
+            ast::LeftValue::VariableAt(id, _) => id,
+        };
+
+        let address = d.find_address(id);
+
         match self {
-            ast::LeftValue::Variable(id) => Variable::new(format!("v{}", id), None),
+            ast::LeftValue::Variable(id) => Variable::new(format!("v{}", id), None, address),
             ast::LeftValue::VariableAt(id, indice) => {
                 let indice = indice.gen(d);
 
@@ -591,7 +646,7 @@ impl Gen<Variable> for ast::LeftValue {
                     }
                 };
 
-                Variable::new(format!("v{}", id), Some(indice))
+                Variable::new(format!("v{}", id), Some(indice), address)
             }
         }
     }
