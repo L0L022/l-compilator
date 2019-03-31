@@ -1,6 +1,8 @@
 mod as_diagnostic;
 mod opt;
 
+use crate::format::three_a::ThreeA;
+use crate::gen_three_address_code::GenThreeAddressCode;
 use crate::semantic_analyser::Analyse;
 use crate::{format::asynt::Asynt, lexer::Lexer, parser::Parser};
 use as_diagnostic::AsDiagnostic;
@@ -34,6 +36,10 @@ impl App {
 
             if opt.symbol_table {
                 Self::print_tab(&content)?;
+            }
+
+            if opt.three_address_code {
+                Self::print_three_a(&content)?;
             }
 
             Ok(())
@@ -76,6 +82,17 @@ impl App {
         p.parse(l)?
             .analyse()?
             .as_table(&mut std::io::stdout().lock())?;
+
+        Ok(())
+    }
+
+    fn print_three_a(content: &str) -> Fallible<()> {
+        let l = Lexer::new(&content);
+        let p = Parser::new();
+
+        p.parse(l)?
+            .gen_three_address_code()
+            .three_a(&mut std::io::stdout().lock())?;
 
         Ok(())
     }

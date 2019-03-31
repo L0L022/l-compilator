@@ -7,6 +7,10 @@ impl Constant {
     pub fn new<T: Into<i32>>(c: T) -> Self {
         Constant(c.into())
     }
+
+    pub fn constant(&self) -> i32 {
+        self.0
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -16,6 +20,10 @@ impl Label {
     pub fn new(label: String) -> Self {
         Label(Rc::new(label))
     }
+
+    pub fn label(&self) -> &String {
+        &self.0
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -24,6 +32,10 @@ pub struct Temp(u32);
 impl Temp {
     pub fn new<T: Into<u32>>(t: T) -> Self {
         Temp(t.into())
+    }
+
+    pub fn temp(&self) -> u32 {
+        self.0
     }
 }
 
@@ -39,6 +51,14 @@ impl Variable {
             id: Rc::new(id),
             indice,
         }
+    }
+
+    pub fn id(&self) -> &String {
+        &self.id
+    }
+
+    pub fn indice(&self) -> &Option<CT> {
+        &self.indice
     }
 }
 
@@ -144,12 +164,14 @@ impl From<Temp> for CT {
     }
 }
 
+#[derive(Debug)]
 pub struct Instruction {
     pub label: Option<Label>,
     pub kind: InstructionKind,
     pub comment: Option<String>,
 }
 
+#[derive(Debug)]
 pub enum InstructionKind {
     Arithmetic {
         operator: ArithmeticOperator,
@@ -195,6 +217,7 @@ pub enum InstructionKind {
     NOP,
 }
 
+#[derive(Debug)]
 pub enum ArithmeticOperator {
     Addition,
     Subtraction,
@@ -202,6 +225,7 @@ pub enum ArithmeticOperator {
     Division,
 }
 
+#[derive(Debug)]
 pub enum JumpIfCondition {
     Less,
     LessOrEqual,
@@ -209,4 +233,9 @@ pub enum JumpIfCondition {
     NotEqual,
     Greater,
     GreaterOrEqual,
+}
+
+#[derive(Debug)]
+pub struct ThreeAddressCode {
+    pub instructions: Vec<Instruction>,
 }
