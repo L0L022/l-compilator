@@ -8,6 +8,7 @@ extern crate codespan_reporting;
 extern crate structopt;
 
 mod app;
+mod assembler;
 mod ast;
 mod format;
 mod gen_three_address_code;
