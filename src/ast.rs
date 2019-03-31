@@ -89,14 +89,3 @@ pub enum BinaryOperator {
     Equal,
     LessThan,
 }
-
-impl BinaryOperator {
-    pub fn is_arithmetic(&self) -> bool {
-        use BinaryOperator::*;
-
-        match self {
-            Addidion | Subtraction | Multiplication | Division => true,
-            _ => false,
-        }
-    }
-}

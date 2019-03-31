@@ -6,16 +6,29 @@ trait Gen<T> {
 }
 
 pub struct Data {
-    pub label_count: u32,
-    pub temp_count: u32,
-    pub next_label: Option<Label>,
+    label_count: u32,
+    temp_count: u32,
     pub instructions: Vec<Instruction>,
 }
 
 impl Data {
-    fn new_temp(&mut self) -> Temp {
-        let t = Temp(self.label_count);
+    fn new() -> Self {
+        Self {
+            label_count: 0,
+            temp_count: 0,
+            instructions: Vec::new(),
+        }
+    }
+
+    fn new_label(&mut self) -> Label {
+        let l = Label::new(format!("e{}", self.label_count));
         self.label_count += 1;
+        l
+    }
+
+    fn new_temp(&mut self) -> Temp {
+        let t = Temp::new(self.temp_count);
+        self.temp_count += 1;
         t
     }
 }
@@ -40,7 +53,22 @@ impl Gen<()> for ast::Statement {
 
         match self {
             DclVariable(v) => v.gen(d),
-            DclFunction(id, args, vars, instructions) => {}
+            DclFunction(id, args, vars, instructions) => {
+                d.instructions.push(Instruction {
+                    label: Some(Label::new(format!("f{}", id))),
+                    kind: InstructionKind::FunctionBegin,
+                    comment: None,
+                });
+
+                vars.gen(d);
+                instructions.gen(d);
+
+                d.instructions.push(Instruction {
+                    label: None,
+                    kind: InstructionKind::FunctionEnd,
+                    comment: None,
+                });
+            }
         }
     }
 }
@@ -63,11 +91,8 @@ impl Gen<()> for ast::Scalar {
         d.instructions.push(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
-                variable: Some(Variable {
-                    id: id.clone(),
-                    indice: None,
-                }),
-                size: Constant(t.size() as i32),
+                variable: Some(Variable::new(format!("v{}", id), None)),
+                size: Constant::new(t.size() as i32),
             },
             comment: None,
         });
@@ -81,11 +106,8 @@ impl Gen<()> for ast::Vector {
         d.instructions.push(Instruction {
             label: None,
             kind: InstructionKind::Allocation {
-                variable: Some(Variable {
-                    id: id.clone(),
-                    indice: None,
-                }),
-                size: Constant(t.size() as i32 * (*size) as i32),
+                variable: Some(Variable::new(format!("v{}", id), None)),
+                size: Constant::new(t.size() as i32 * (*size) as i32),
             },
             comment: None,
         });
@@ -123,13 +145,71 @@ impl Gen<()> for ast::Instruction {
                 });
             }
             If(e, i1, i2) => {
-                e.gen(d);
+                let l_else = d.new_label();
+                let l_end = d.new_label();
+
+                let left = e.gen(d);
+                d.instructions.push(Instruction {
+                    label: None,
+                    kind: InstructionKind::JumpIf {
+                        condition: JumpIfCondition::Equal,
+                        left,
+                        right: Constant::new(false).into(),
+                        label: l_else.clone(),
+                    },
+                    comment: None,
+                });
                 i1.gen(d);
+                d.instructions.push(Instruction {
+                    label: None,
+                    kind: InstructionKind::Jump {
+                        label: l_end.clone(),
+                    },
+                    comment: None,
+                });
+                d.instructions.push(Instruction {
+                    label: Some(l_else),
+                    kind: InstructionKind::NOP,
+                    comment: None,
+                });
                 i2.gen(d);
+                d.instructions.push(Instruction {
+                    label: Some(l_end),
+                    kind: InstructionKind::NOP,
+                    comment: None,
+                });
             }
             While(e, i) => {
-                e.gen(d);
+                let l_begin = d.new_label();
+                let l_end = d.new_label();
+
+                d.instructions.push(Instruction {
+                    label: Some(l_begin.clone()),
+                    kind: InstructionKind::NOP,
+                    comment: None,
+                });
+                let left = e.gen(d);
+                d.instructions.push(Instruction {
+                    label: None,
+                    kind: InstructionKind::JumpIf {
+                        condition: JumpIfCondition::Equal,
+                        left,
+                        right: Constant::new(false).into(),
+                        label: l_end.clone(),
+                    },
+                    comment: None,
+                });
                 i.gen(d);
+                d.instructions.push(Instruction {
+                    label: None,
+                    kind: InstructionKind::Jump { label: l_begin },
+                    comment: None,
+                });
+                d.instructions.push(Instruction {
+                    label: Some(l_end),
+                    kind: InstructionKind::NOP,
+                    comment: None,
+                });
             }
             WriteFunction(e) => {
                 let value = e.gen(d);
@@ -139,7 +219,13 @@ impl Gen<()> for ast::Instruction {
                     comment: None,
                 });
             }
-            NOP => {}
+            NOP => {
+                d.instructions.push(Instruction {
+                    label: None,
+                    kind: InstructionKind::NOP,
+                    comment: None,
+                });
+            }
         }
     }
 }
@@ -149,7 +235,7 @@ impl Gen<CTV> for ast::Expression {
         use ast::Expression::*;
 
         match self {
-            Value(v) => Constant(*v).into(),
+            Value(v) => Constant::new(*v).into(),
             LeftValue(lv) => lv.gen(d).into(),
             CallFunction(c) => c.gen(d),
             ReadFunction => {
@@ -165,44 +251,224 @@ impl Gen<CTV> for ast::Expression {
             }
             UnaryOperation(op, e) => {
                 use ast::UnaryOperator::*;
-                let result = d.new_temp();
 
                 match op {
                     Not => {
-                        e.gen(d);
+                        let l_end = d.new_label();
+
+                        let left = e.gen(d);
+                        let result = d.new_temp();
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(false).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::JumpIf {
+                                condition: JumpIfCondition::Equal,
+                                left,
+                                right: Constant::new(false).into(),
+                                label: l_end.clone(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(true).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: Some(l_end),
+                            kind: InstructionKind::NOP,
+                            comment: None,
+                        });
+
+                        result.into()
                     }
                 }
-
-                result.into()
             }
             BinaryOperation(op, e1, e2) => {
                 use ast::BinaryOperator::*;
 
-                let result = d.new_temp();
+                match op {
+                    Addidion | Subtraction | Multiplication | Division => {
+                        let operator = match op {
+                            Addidion => ArithmeticOperator::Addition,
+                            Subtraction => ArithmeticOperator::Subtraction,
+                            Multiplication => ArithmeticOperator::Multiplication,
+                            Division => ArithmeticOperator::Division,
+                            _ => unreachable!(),
+                        };
 
-                if op.is_arithmetic() {
-                    let operator = match op {
-                        Addidion => ArithmeticOperator::Addition,
-                        Subtraction => ArithmeticOperator::Subtraction,
-                        Multiplication => ArithmeticOperator::Multiplication,
-                        Division => ArithmeticOperator::Division,
-                        _ => unreachable!(),
-                    };
-                    let left = e1.gen(d);
-                    let right = e2.gen(d);
-                    d.instructions.push(Instruction {
-                        label: None,
-                        kind: InstructionKind::Arithmetic {
-                            operator,
-                            left,
-                            right,
-                            result: result.clone().into(),
-                        },
-                        comment: None,
-                    });
+                        let left = e1.gen(d);
+                        let right = e2.gen(d);
+                        let result = d.new_temp();
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Arithmetic {
+                                operator,
+                                left,
+                                right,
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+
+                        result.into()
+                    }
+                    And => {
+                        let l_end = d.new_label();
+
+                        let left = e1.gen(d);
+                        let result = d.new_temp();
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(false).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::JumpIf {
+                                condition: JumpIfCondition::Equal,
+                                left,
+                                right: Constant::new(false).into(),
+                                label: l_end.clone(),
+                            },
+                            comment: None,
+                        });
+                        let left = e2.gen(d);
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::JumpIf {
+                                condition: JumpIfCondition::Equal,
+                                left,
+                                right: Constant::new(false).into(),
+                                label: l_end.clone(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(true).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: Some(l_end),
+                            kind: InstructionKind::NOP,
+                            comment: None,
+                        });
+
+                        result.into()
+                    }
+                    Or => {
+                        let l_end = d.new_label();
+
+                        let left = e1.gen(d);
+                        let result = d.new_temp();
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(true).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::JumpIf {
+                                condition: JumpIfCondition::Equal,
+                                left,
+                                right: Constant::new(true).into(),
+                                label: l_end.clone(),
+                            },
+                            comment: None,
+                        });
+                        let left = e2.gen(d);
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::JumpIf {
+                                condition: JumpIfCondition::Equal,
+                                left,
+                                right: Constant::new(true).into(),
+                                label: l_end.clone(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(false).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: Some(l_end),
+                            kind: InstructionKind::NOP,
+                            comment: None,
+                        });
+
+                        result.into()
+                    }
+                    Equal | LessThan => {
+                        let condition = match op {
+                            Equal => JumpIfCondition::Equal,
+                            LessThan => JumpIfCondition::Less,
+                            _ => unreachable!(),
+                        };
+                        let l_end = d.new_label();
+
+                        let left = e1.gen(d);
+                        let right = e2.gen(d);
+                        let result = d.new_temp();
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(true).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::JumpIf {
+                                condition,
+                                left,
+                                right,
+                                label: l_end.clone(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: None,
+                            kind: InstructionKind::Affectation {
+                                value: Constant::new(false).into(),
+                                result: result.clone().into(),
+                            },
+                            comment: None,
+                        });
+                        d.instructions.push(Instruction {
+                            label: Some(l_end),
+                            kind: InstructionKind::NOP,
+                            comment: None,
+                        });
+
+                        result.into()
+                    }
                 }
-
-                result.into()
             }
         }
     }
@@ -211,10 +477,7 @@ impl Gen<CTV> for ast::Expression {
 impl Gen<Variable> for ast::LeftValue {
     fn gen(&self, d: &mut Data) -> Variable {
         match self {
-            ast::LeftValue::Variable(id) => Variable {
-                id: id.clone(),
-                indice: None,
-            },
+            ast::LeftValue::Variable(id) => Variable::new(format!("v{}", id), None),
             ast::LeftValue::VariableAt(id, indice) => {
                 let indice = indice.gen(d);
 
@@ -235,10 +498,7 @@ impl Gen<Variable> for ast::LeftValue {
                     }
                 };
 
-                Variable {
-                    id: id.clone(),
-                    indice: Some(indice),
-                }
+                Variable::new(format!("v{}", id), Some(indice))
             }
         }
     }
@@ -252,7 +512,7 @@ impl Gen<CTV> for ast::CallFunction {
             label: None,
             kind: InstructionKind::Allocation {
                 variable: None,
-                size: Constant(1),
+                size: Constant::new(1),
             },
             comment: Some("alloue place pour la valeur de retour".to_string()),
         });
@@ -271,7 +531,7 @@ impl Gen<CTV> for ast::CallFunction {
         d.instructions.push(Instruction {
             label: None,
             kind: InstructionKind::FunctionCall {
-                function: Label(format!("f{}", id)),
+                function: Label::new(format!("f{}", id)),
                 result: result.clone().into(),
             },
             comment: None,

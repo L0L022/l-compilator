@@ -1,16 +1,45 @@
-#[derive(Debug, Clone)]
-pub struct Constant(pub i32);
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
-pub struct Label(pub String);
+pub struct Constant(i32);
+
+impl Constant {
+    pub fn new<T: Into<i32>>(c: T) -> Self {
+        Constant(c.into())
+    }
+}
 
 #[derive(Debug, Clone)]
-pub struct Temp(pub u32);
+pub struct Label(Rc<String>);
+
+impl Label {
+    pub fn new(label: String) -> Self {
+        Label(Rc::new(label))
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Temp(u32);
+
+impl Temp {
+    pub fn new<T: Into<u32>>(t: T) -> Self {
+        Temp(t.into())
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Variable {
-    pub id: String,
-    pub indice: Option<CT>,
+    id: Rc<String>,
+    indice: Option<CT>,
+}
+
+impl Variable {
+    pub fn new(id: String, indice: Option<CT>) -> Self {
+        Variable {
+            id: Rc::new(id),
+            indice,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -163,6 +192,7 @@ pub enum InstructionKind {
         right: CTV,
         label: Label,
     },
+    NOP,
 }
 
 pub enum ArithmeticOperator {
