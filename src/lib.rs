@@ -10,6 +10,7 @@ extern crate structopt;
 mod app;
 mod assembler;
 mod ast;
+mod c_code;
 mod format;
 mod gen_three_address_code;
 mod lexer;

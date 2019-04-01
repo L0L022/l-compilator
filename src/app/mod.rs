@@ -1,6 +1,7 @@
 mod as_diagnostic;
 mod opt;
 
+use crate::c_code;
 use crate::format::three_a::ThreeA;
 use crate::gen_three_address_code::GenThreeAddressCode;
 use crate::semantic_analyser::Analyse;
@@ -40,6 +41,10 @@ impl App {
 
             if opt.three_address_code {
                 Self::print_three_a(&content)?;
+            }
+
+            if opt.nasm {
+                Self::print_nasm(&content)?;
             }
 
             Ok(())
@@ -94,6 +99,17 @@ impl App {
         let symbol_table = ast.analyse()?;
         ast.gen_three_address_code(&symbol_table, 0)
             .three_a(&mut std::io::stdout().lock())?;
+
+        Ok(())
+    }
+
+    fn print_nasm(content: &str) -> Fallible<()> {
+        let l = Lexer::new(&content);
+        let p = Parser::new();
+
+        let ast = p.parse(l)?;
+        let symbol_table = ast.analyse()?;
+        c_code::print_nasm(&ast.gen_three_address_code(&symbol_table, 0));
 
         Ok(())
     }

@@ -1,3 +1,4 @@
+use crate::symbol_table::Scope;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -53,14 +54,16 @@ pub struct Variable {
     id: Rc<String>,
     indice: Option<CT>,
     address: usize,
+    scope: Scope,
 }
 
 impl Variable {
-    pub fn new(id: String, indice: Option<CT>, address: usize) -> Self {
+    pub fn new(id: String, indice: Option<CT>, address: usize, scope: Scope) -> Self {
         Variable {
             id: Rc::new(id),
             indice,
             address,
+            scope,
         }
     }
 
@@ -74,6 +77,10 @@ impl Variable {
 
     pub fn address(&self) -> usize {
         self.address
+    }
+
+    pub fn scope(&self) -> Scope {
+        self.scope
     }
 }
 
