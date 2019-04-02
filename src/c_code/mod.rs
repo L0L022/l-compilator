@@ -6,9 +6,18 @@ include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use crate::symbol_table::Scope;
 use crate::three_address_code::*;
+use std::cell::RefCell;
 use std::cmp::max;
+use std::collections::HashMap;
+use std::ffi::c_void;
 use std::ffi::CString;
 use std::ptr;
+
+thread_local!(static allocs: RefCell<Vec<*mut c_void>> = RefCell::new(Vec::new()));
+thread_local!(static labels: RefCell<HashMap<Label, *mut operande>> = RefCell::new(HashMap::new()));
+thread_local!(static constants: RefCell<HashMap<Constant, *mut operande>> = RefCell::new(HashMap::new()));
+thread_local!(static temps: RefCell<HashMap<Temp, *mut operande>> = RefCell::new(HashMap::new()));
+thread_local!(static variables: RefCell<HashMap<Variable, *mut operande>> = RefCell::new(HashMap::new()));
 
 pub fn print_nasm(three_address_code: &ThreeAddressCode) {
     unsafe { assert!(code3a.liste.is_null()) }
@@ -20,9 +29,9 @@ pub fn print_nasm(three_address_code: &ThreeAddressCode) {
 
         let (op_code, op_oper1, op_oper2, op_result): (
             u32,
-            Option<operande>,
-            Option<operande>,
-            Option<operande>,
+            Option<*mut operande>,
+            Option<*mut operande>,
+            Option<*mut operande>,
         ) = match &instr.kind {
             Arithmetic {
                 operator,
@@ -92,7 +101,7 @@ pub fn print_nasm(three_address_code: &ThreeAddressCode) {
                     Some(label.into()),
                 )
             }
-            NOP => continue,
+            NOP => (instrcode_nop, None, None, None),
         };
 
         let op_etiq = match &instr.label {
@@ -103,17 +112,17 @@ pub fn print_nasm(three_address_code: &ThreeAddressCode) {
         };
 
         let op_oper1 = match op_oper1 {
-            Some(o) => Box::into_raw(Box::new(o)),
+            Some(o) => o,
             None => ptr::null_mut(),
         };
 
         let op_oper2 = match op_oper2 {
-            Some(o) => Box::into_raw(Box::new(o)),
+            Some(o) => o,
             None => ptr::null_mut(),
         };
 
         let op_result = match op_result {
-            Some(o) => Box::into_raw(Box::new(o)),
+            Some(o) => o,
             None => ptr::null_mut(),
         };
 
@@ -133,8 +142,6 @@ pub fn print_nasm(three_address_code: &ThreeAddressCode) {
     }
 
     unsafe {
-        code3a_init();
-
         code3a.liste = instructions.as_mut_ptr();
         code3a.next = instructions.len() as i32;
 
@@ -145,26 +152,63 @@ pub fn print_nasm(three_address_code: &ThreeAddressCode) {
     }
 
     for mut instr in instructions {
-        // utiliser drop operande
         unsafe {
             if !instr.op_etiq.is_null() {
                 CString::from_raw(instr.op_etiq);
                 instr.op_etiq = ptr::null_mut();
             }
-            if !instr.op_oper1.is_null() {
-                Box::from_raw(instr.op_oper1);
-                instr.op_oper1 = ptr::null_mut();
-            }
-            if !instr.op_oper2.is_null() {
-                Box::from_raw(instr.op_oper2);
-                instr.op_oper2 = ptr::null_mut();
-            }
+
             if !instr.comment.is_null() {
                 CString::from_raw(instr.comment);
                 instr.comment = ptr::null_mut();
             }
         }
     }
+
+    allocs.with(|als| {
+        for alloc in als.borrow().iter() {
+            unsafe {
+                libc::free(*alloc);
+            }
+        }
+        als.borrow_mut().clear();
+    });
+
+    labels.with(|ls| {
+        for op in ls.borrow_mut().values_mut() {
+            unsafe {
+                drop_operande(*op);
+            }
+        }
+        ls.borrow_mut().clear();
+    });
+
+    constants.with(|cs| {
+        for op in cs.borrow_mut().values_mut() {
+            unsafe {
+                drop_operande(*op);
+            }
+        }
+        cs.borrow_mut().clear();
+    });
+
+    temps.with(|ts| {
+        for op in ts.borrow_mut().values_mut() {
+            unsafe {
+                drop_operande(*op);
+            }
+        }
+        ts.borrow_mut().clear();
+    });
+
+    variables.with(|vars| {
+        for op in vars.borrow_mut().values_mut() {
+            unsafe {
+                drop_operande(*op);
+            }
+        }
+        vars.borrow_mut().clear();
+    });
 }
 
 impl From<&Variable> for operande {
@@ -181,7 +225,7 @@ impl From<&Variable> for operande {
                     } as i32,
                     oper_adresse: v.address() as i32,
                     oper_indice: match v.indice() {
-                        Some(indice) => Box::into_raw(Box::new(indice.into())),
+                        Some(indice) => indice.into(),
                         None => ptr::null_mut(),
                     },
                 },
@@ -190,18 +234,33 @@ impl From<&Variable> for operande {
     }
 }
 
-unsafe fn drop_operande(op: &mut operande) {
+impl From<&Variable> for *mut operande {
+    fn from(v: &Variable) -> Self {
+        variables.with(|vars| {
+            *vars
+                .borrow_mut()
+                .entry(v.clone())
+                .or_insert_with(|| Box::into_raw(Box::new(v.into())))
+        })
+    }
+}
+
+unsafe fn drop_operande(op: *mut operande) {
+    if op.is_null() {
+        return;
+    }
+
+    drop_operande_ref_mut(&mut *op);
+
+    Box::from_raw(op);
+}
+
+unsafe fn drop_operande_ref_mut(op: &mut operande) {
     if op.oper_type == O_VARIABLE as i32 {
         let nom = op.u.oper_var.oper_nom;
         if !nom.is_null() {
             CString::from_raw(nom);
             op.u.oper_var.oper_nom = ptr::null_mut();
-        }
-
-        let indice = op.u.oper_var.oper_indice;
-        if !indice.is_null() {
-            Box::from_raw(indice);
-            op.u.oper_var.oper_indice = ptr::null_mut();
         }
     }
 
@@ -225,11 +284,22 @@ impl From<&Constant> for operande {
     }
 }
 
+impl From<&Constant> for *mut operande {
+    fn from(c: &Constant) -> Self {
+        constants.with(|cs| {
+            *cs.borrow_mut()
+                .entry(c.clone())
+                .or_insert_with(|| Box::into_raw(Box::new(c.into())))
+        })
+    }
+}
+
 impl From<&Temp> for operande {
     fn from(t: &Temp) -> Self {
         unsafe {
             global_temp_counter = max(global_temp_counter, t.temp() as i32 + 1);
         }
+
         Self {
             oper_type: O_TEMPORAIRE as i32,
             u: operande___bindgen_ty_1 {
@@ -240,6 +310,16 @@ impl From<&Temp> for operande {
                 },
             },
         }
+    }
+}
+
+impl From<&Temp> for *mut operande {
+    fn from(t: &Temp) -> Self {
+        temps.with(|ts| {
+            *ts.borrow_mut()
+                .entry(t.clone())
+                .or_insert_with(|| Box::into_raw(Box::new(t.into())))
+        })
     }
 }
 
@@ -254,7 +334,17 @@ impl From<&Label> for operande {
     }
 }
 
-impl From<&CTV> for operande {
+impl From<&Label> for *mut operande {
+    fn from(l: &Label) -> Self {
+        labels.with(|ls| {
+            *ls.borrow_mut()
+                .entry(l.clone())
+                .or_insert_with(|| Box::into_raw(Box::new(l.into())))
+        })
+    }
+}
+
+impl From<&CTV> for *mut operande {
     fn from(ctv: &CTV) -> Self {
         match ctv {
             CTV::C(c) => c.into(),
@@ -264,7 +354,7 @@ impl From<&CTV> for operande {
     }
 }
 
-impl From<&TV> for operande {
+impl From<&TV> for *mut operande {
     fn from(tv: &TV) -> Self {
         match tv {
             TV::T(t) => t.into(),
@@ -273,11 +363,25 @@ impl From<&TV> for operande {
     }
 }
 
-impl From<&CT> for operande {
+impl From<&CT> for *mut operande {
     fn from(ct: &CT) -> Self {
         match ct {
             CT::C(c) => c.into(),
             CT::T(t) => t.into(),
         }
     }
+}
+
+#[no_mangle]
+extern "C" fn rust_malloc(size: libc::size_t) -> *mut c_void {
+    allocs.with(|als| {
+        let alloc = unsafe { libc::malloc(size) };
+        als.borrow_mut().push(alloc);
+        alloc
+    })
+}
+
+#[no_mangle]
+extern "C" fn rust_new_temporaire() -> *mut operande {
+    (&Temp::new(unsafe { global_temp_counter } as u32)).into()
 }

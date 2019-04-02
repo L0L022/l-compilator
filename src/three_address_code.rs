@@ -1,8 +1,10 @@
 use crate::symbol_table::Scope;
 use std::cell::RefCell;
+use std::hash::Hash;
+use std::hash::Hasher;
 use std::rc::Rc;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Constant(i32);
 
 impl Constant {
@@ -15,7 +17,7 @@ impl Constant {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Label(Rc<String>);
 
 impl Label {
@@ -28,8 +30,14 @@ impl Label {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Temp(u32, Rc<RefCell<i32>>);
+
+impl Hash for Temp {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state);
+    }
+}
 
 impl Temp {
     pub fn new<T: Into<u32>>(t: T) -> Self {
@@ -49,7 +57,7 @@ impl Temp {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Variable {
     id: Rc<String>,
     indice: Option<CT>,
@@ -120,7 +128,7 @@ pub enum TV {
     V(Variable),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CT {
     C(Constant),
     T(Temp),

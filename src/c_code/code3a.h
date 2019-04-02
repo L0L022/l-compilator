@@ -17,7 +17,8 @@ typedef enum {arith_add, arith_sub, arith_mult, arith_div, //expressions arith.
               //instructions de contrôle (si, tantque) et logiques/comparaison:
               jump, jump_if_less, jump_if_less_or_equal, jump_if_equal,
               jump_if_not_equal, jump_if_greater, jump_if_greater_or_equal,
-              sys_read, sys_write // lire et écrire (interruptions système)
+              sys_read, sys_write, // lire et écrire (interruptions système)
+              nop
              } instrcode; // codes d'instruction 3 adresses valides
 
 typedef struct operande_ operande;

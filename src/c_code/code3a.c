@@ -90,20 +90,10 @@ void code3a_ajoute_instruction(instrcode op_code, operande *op_oper1,
 }
 
 /******************************************************************************/
+extern operande *rust_new_temporaire();
 
 operande *code3a_new_temporaire(){
-  operande *newtemp = malloc(sizeof(operande));
-  newtemp->oper_type = O_TEMPORAIRE;
-  newtemp->u.oper_temp.oper_tempnum = global_temp_counter;
-  newtemp->u.oper_temp.last_use = -1;
-  newtemp->u.oper_temp.emplacement = 0;  
-  if(global_temp_counter >= desctempsize ) { // temp_desc too short, must realloc
-    desctempsize += MAX_TEMP;
-    desctemp = realloc(desctemp, desctempsize * sizeof(operande *));
-  }
-  desctemp[global_temp_counter] = newtemp;
-  global_temp_counter++;
-  return newtemp;
+  return rust_new_temporaire();
 }
 
 /******************************************************************************/

@@ -5,6 +5,8 @@
 #include <string.h>
 #include "util.h"
 
+extern void *rust_malloc(size_t size);
+
 #define printverb(format) if(nasm_verbose){ printf(format); }
 #define printverba(format, ...) if(nasm_verbose){ printf(format, __VA_ARGS__); }
 
@@ -106,7 +108,7 @@ char *varconst2nasm(operande *oper){
   if(oper->oper_type != O_VARIABLE && oper->oper_type != O_CONSTANTE){
     erreur("Opérande n'est pas une variable ou constante");
   }
-  char *result = malloc(sizeof(char)*150);
+  char *result = rust_malloc(sizeof(char)*150);
   if(oper->oper_type == O_CONSTANTE){
     sprintf(result,"%d",oper->u.oper_valeur);
   }
@@ -114,7 +116,7 @@ char *varconst2nasm(operande *oper){
     if(oper->u.oper_var.oper_portee == P_VARIABLE_GLOBALE) {
       if(oper->u.oper_var.oper_indice){
         operande *indice = oper->u.oper_var.oper_indice;
-        char *indchar = malloc(sizeof(char) * 20);
+        char *indchar = rust_malloc(sizeof(char) * 20);
         if(indice->oper_type == O_CONSTANTE){
           sprintf(indchar,"%d",indice->u.oper_valeur * 4);
         }
@@ -526,6 +528,8 @@ void c3a2nasm_generer(){
         break;
       case jump_if_less_or_equal :
         c3a2nasm_jump("jle",i_oper.op_oper1,i_oper.op_oper2,i_oper.op_result);
+        break;
+      case nop :
         break;
       default:
         erreur("Opération en code 3 adresses non reconnue");
