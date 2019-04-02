@@ -109,7 +109,11 @@ impl App {
 
         let ast = p.parse(l)?;
         let symbol_table = ast.analyse()?;
-        c_code::print_nasm(&ast.gen_three_address_code(&symbol_table, 0));
+        c_code::print_nasm(
+            &ast.gen_three_address_code(&symbol_table, 0),
+            &symbol_table,
+            0,
+        );
 
         Ok(())
     }

@@ -6,6 +6,9 @@
 #include "util.h"
 
 extern void *rust_malloc(size_t size);
+extern void rust_function_enter(char *id);
+extern void rust_function_exit();
+extern size_t rust_function_nb_arguments(char *id);
 
 #define printverb(format) if(nasm_verbose){ printf(format); }
 #define printverba(format, ...) if(nasm_verbose){ printf(format, __VA_ARGS__); }
@@ -299,6 +302,7 @@ void c3a2nasm_finfonction(int varlocs){
   }
   _nasm_instr("pop", "ebp", NULL, NULL, "restaure la valeur de ebp") ;
   _nasm_instr("ret", NULL, NULL, NULL, NULL);
+  rust_function_exit();
 }
 
 /******************************************************************************/
@@ -316,8 +320,9 @@ void c3a2nasm_allouer(operande *var){
 /******************************************************************************/
 
 void c3a2nasm_debutfonction(char *nomfonction){
+  rust_function_enter(nomfonction);
   varlocs = 0;
-  arguments = tabsymboles.tab[rechercheExecutable(nomfonction)].complement;
+  arguments = rust_function_nb_arguments(nomfonction);
   _nasm_instr("push", "ebp", NULL, NULL, "sauvegarde la valeur de ebp") ;
   _nasm_instr("mov", "ebp", "esp", NULL, "nouvelle valeur de ebp");
 }

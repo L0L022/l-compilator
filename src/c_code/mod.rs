@@ -5,22 +5,33 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use crate::symbol_table::Scope;
+use crate::symbol_table::SymbolTable;
 use crate::three_address_code::*;
 use std::cell::RefCell;
 use std::cmp::max;
 use std::collections::HashMap;
 use std::ffi::c_void;
+use std::ffi::CStr;
 use std::ffi::CString;
 use std::ptr;
 
+thread_local!(static symbol_table_info: RefCell<Option<(*const SymbolTable, usize)>> = RefCell::new(None));
 thread_local!(static allocs: RefCell<Vec<*mut c_void>> = RefCell::new(Vec::new()));
 thread_local!(static labels: RefCell<HashMap<Label, *mut operande>> = RefCell::new(HashMap::new()));
 thread_local!(static constants: RefCell<HashMap<Constant, *mut operande>> = RefCell::new(HashMap::new()));
 thread_local!(static temps: RefCell<HashMap<Temp, *mut operande>> = RefCell::new(HashMap::new()));
 thread_local!(static variables: RefCell<HashMap<Variable, *mut operande>> = RefCell::new(HashMap::new()));
 
-pub fn print_nasm(three_address_code: &ThreeAddressCode) {
+pub fn print_nasm(
+    three_address_code: &ThreeAddressCode,
+    symbol_table: &SymbolTable,
+    current_table: usize,
+) {
     unsafe { assert!(code3a.liste.is_null()) }
+
+    symbol_table_info.with(|sti| {
+        *sti.borrow_mut() = Some((symbol_table, current_table));
+    });
 
     let mut instructions = Vec::with_capacity(three_address_code.instructions.len());
 
@@ -164,6 +175,10 @@ pub fn print_nasm(three_address_code: &ThreeAddressCode) {
             }
         }
     }
+
+    symbol_table_info.with(|sti| {
+        *sti.borrow_mut() = None;
+    });
 
     allocs.with(|als| {
         for alloc in als.borrow().iter() {
@@ -384,4 +399,71 @@ extern "C" fn rust_malloc(size: libc::size_t) -> *mut c_void {
 #[no_mangle]
 extern "C" fn rust_new_temporaire() -> *mut operande {
     (&Temp::new(unsafe { global_temp_counter } as u32)).into()
+}
+
+#[no_mangle]
+extern "C" fn rust_function_enter(id: *mut std::os::raw::c_char) {
+    symbol_table_info.with(|sti| {
+        if let Some(info) = sti.borrow_mut().as_mut() {
+            let (symbol_table, current_table) = info;
+            let symbol_table = unsafe { symbol_table.as_ref().unwrap() };
+            let id = unsafe { CStr::from_ptr(id) };
+
+            use crate::symbol_table::SymbolKind;
+
+            let symbol = symbol_table
+                .iter(*current_table)
+                .find(|symbol| symbol.id.as_bytes() == id.to_bytes() && symbol.is_function());
+
+            match symbol {
+                Some(symbol) => match symbol.kind {
+                    SymbolKind::Function { symbol_table, .. } => {
+                        *current_table = symbol_table;
+                    }
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            }
+        }
+    });
+}
+
+#[no_mangle]
+extern "C" fn rust_function_exit() {
+    symbol_table_info.with(|sti| {
+        if let Some(info) = sti.borrow_mut().as_mut() {
+            let (symbol_table, current_table) = info;
+            let symbol_table = unsafe { symbol_table.as_ref().unwrap() };
+
+            if let Some(parent) = symbol_table.tables[*current_table].parent {
+                *current_table = parent;
+            }
+        }
+    });
+}
+
+#[no_mangle]
+extern "C" fn rust_function_nb_arguments(id: *mut std::os::raw::c_char) -> usize {
+    symbol_table_info.with(|sti| match sti.borrow_mut().as_mut() {
+        Some(info) => {
+            let (symbol_table, current_table) = info;
+            let symbol_table = unsafe { symbol_table.as_ref().unwrap() };
+            let id = unsafe { CStr::from_ptr(id) };
+
+            use crate::symbol_table::SymbolKind;
+
+            let symbol = symbol_table
+                .iter(*current_table)
+                .find(|symbol| symbol.id.as_bytes() == id.to_bytes() && symbol.is_function());
+
+            match symbol {
+                Some(symbol) => match symbol.kind {
+                    SymbolKind::Function { nb_arguments, .. } => nb_arguments,
+                    _ => unreachable!(),
+                },
+                None => unreachable!(),
+            }
+        }
+        None => unreachable!(),
+    })
 }

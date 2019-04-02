@@ -241,7 +241,7 @@ impl Gen<()> for ast::Scalar {
             label: None,
             kind: InstructionKind::Allocation {
                 variable: Some(Variable::new(format!("v{}", id), None, address, scope)),
-                size: Constant::new(t.size() as i32),
+                size: Constant::new(t.size() as i32 / 4),
             },
             comment: None,
         });
@@ -257,7 +257,7 @@ impl Gen<()> for ast::Vector {
             label: None,
             kind: InstructionKind::Allocation {
                 variable: Some(Variable::new(format!("v{}", id), None, address, scope)),
-                size: Constant::new(t.size() as i32 * (*size) as i32),
+                size: Constant::new(t.size() as i32 * (*size) as i32 / 4),
             },
             comment: None,
         });
