@@ -1,14 +1,16 @@
 #include "code3a.h"
 #include "tabsymboles.h"
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+// #include <string.h>
 #include "util.h"
 
 extern void *rust_malloc(size_t size);
 extern void rust_function_enter(char *id);
 extern void rust_function_exit();
 extern size_t rust_function_nb_arguments(char *id);
+extern operande *rust_new_temporaire();
+extern void code3a_affiche_ligne_code(operation_3a *i_oper);
 
 #define printverb(format) if(nasm_verbose){ printf(format); }
 #define printverba(format, ...) if(nasm_verbose){ printf(format, __VA_ARGS__); }
@@ -161,7 +163,7 @@ int oper2reg(operande *oper, int regnum){ // regnum can be REG_NONE
     desc_reg[oldreg] = NULL;
   }
   if(oper->oper_type == O_CONSTANTE || oper->oper_type == O_VARIABLE){
-    operande *constvartemp = code3a_new_temporaire();
+    operande *constvartemp = rust_new_temporaire();
     constvartemp->u.oper_temp.last_use = i_ligne;
     if(regnum == REG_NONE){ result = new_registre(constvartemp); }
     else{ result = regnum; }
@@ -261,7 +263,7 @@ void c3a2nasm_affect(operande *result, operande *oper1){
   int oper1reg;
   if(result->oper_type == O_VARIABLE && oper1->oper_type == O_VARIABLE){
     char *oper1chartemp = varconst2nasm(oper1);
-    operande *tempvar = code3a_new_temporaire();
+    operande *tempvar = rust_new_temporaire();
     tempvar->u.oper_temp.last_use = i_ligne;
     oper1char = nomreg[new_registre(tempvar)];
     _nasm_instr("mov", oper1char, oper1chartemp, NULL,

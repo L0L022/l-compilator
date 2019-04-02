@@ -12,7 +12,7 @@ fn main() {
     cc::Build::new()
         .file("src/c_code/c3a2nasm.c")
         .file("src/c_code/code3a.c")
-        .file("src/c_code/tabsymboles.c")
+        // .file("src/c_code/tabsymboles.c")
         .file("src/c_code/util.c")
         .compile("c_code");
 

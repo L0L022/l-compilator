@@ -1,142 +1,142 @@
 #include "code3a.h"
-#include <stdlib.h>
+// #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
+// #include <string.h>
 #include "util.h"
 #include "tabsymboles.h"
 
-#define MAX_TEMP 20
-
-// tableau global avec code à 3 adresses
+// #define MAX_TEMP 20
+//
+// // tableau global avec code à 3 adresses
 code3a_ code3a;
-// taille du tableau, peut augmenter si besoin avec realloc
-int code3asize = CODE_BLOCK_SIZE;
-// compteur des temporaires, pour générer des noms uniques
+// // taille du tableau, peut augmenter si besoin avec realloc
+// int code3asize = CODE_BLOCK_SIZE;
+// // compteur des temporaires, pour générer des noms uniques
 int global_temp_counter = 0;
-// descripteur des temporaires, vecteur de pointeurs vers opérande temp.
-operande **desctemp;
-// Comme pour code3asize, taille du descripteur desctemp, peut augmenter
-int desctempsize = MAX_TEMP;
-// étiquette de la prochaine ligne, on retarde l'ajout de l'étiquette
-char *_next_etiq = NULL;
+// // descripteur des temporaires, vecteur de pointeurs vers opérande temp.
+// operande **desctemp;
+// // Comme pour code3asize, taille du descripteur desctemp, peut augmenter
+// int desctempsize = MAX_TEMP;
+// // étiquette de la prochaine ligne, on retarde l'ajout de l'étiquette
+// char *_next_etiq = NULL;
 int code3a_verbose = 0;
-
-int etiq_counter = 0;
-
-
-/******************************************************************************/
-
-void code3a_init() {
-  code3a.liste = malloc(code3asize*sizeof(operation_3a));
-  code3a.next = 0;
-  desctemp = malloc(desctempsize * sizeof(operande *));
-}
-
-/******************************************************************************/
-
-void code3a_ajoute_etiquette(char *etiquette){
-  if(_next_etiq){
-    warning_1s("Étiquette précédente ignorée: %s",_next_etiq);
-  }
-  // étiquette pas ajoutée à la ligne courante, mais à la prochaine
-  _next_etiq = etiquette;
-}
-
-/******************************************************************************/
-
-void update_lastuse(operande *op_oper1, int is_lvalue) {
-  if(op_oper1) {
-    // temporaire en rvalue (utiliser sa valeur pour calculer une autre)
-    if(op_oper1->oper_type == O_TEMPORAIRE && !is_lvalue) {
-      int tempnum = op_oper1->u.oper_temp.oper_tempnum;
-      desctemp[tempnum]->u.oper_temp.last_use = code3a.next;
-    }
-    // les indices de tableaux sont des rvalue (utilisation du temporaire)
-    else if(op_oper1->oper_type == O_VARIABLE){
-      if(op_oper1->u.oper_var.oper_indice && op_oper1->u.oper_var.oper_indice->oper_type == O_TEMPORAIRE) {
-        int tempnum = op_oper1->u.oper_var.oper_indice->u.oper_temp.oper_tempnum;
-        desctemp[tempnum]->u.oper_temp.last_use = code3a.next;
-      }
-    }
-  }
-}
-
-/******************************************************************************/
-
-void code3a_ajoute_instruction(instrcode op_code, operande *op_oper1,
-                               operande *op_oper2, operande *op_result,
-                               char *comment){
-  if(code3a.next >= code3asize){
-    code3asize += CODE_BLOCK_SIZE;
-    code3a.liste = realloc(code3a.liste,code3asize*sizeof(operation_3a));
-  }
-  code3a.liste[code3a.next].op_code = op_code;
-  code3a.liste[code3a.next].op_oper1 = op_oper1;
-  code3a.liste[code3a.next].op_oper2 = op_oper2;
-  code3a.liste[code3a.next].op_result = op_result;
-  code3a.liste[code3a.next].comment = comment;
-  if(_next_etiq) { // cette opération est étiquetée
-    code3a.liste[code3a.next].op_etiq = _next_etiq;
-    _next_etiq = NULL;
-  }
-  else{
-    code3a.liste[code3a.next].op_etiq = _next_etiq;
-  }
-  // mise à jour de last_use pour les temporaires
-  update_lastuse(op_oper1, 0);
-  update_lastuse(op_oper2, 0);
-  update_lastuse(op_result, 1);
-  code3a.next++;
-}
-
-/******************************************************************************/
-extern operande *rust_new_temporaire();
-
-operande *code3a_new_temporaire(){
-  return rust_new_temporaire();
-}
-
-/******************************************************************************/
-
-operande *code3a_new_constante(int valeur){
-  operande *newlit = malloc(sizeof(operande));
-  newlit->oper_type = O_CONSTANTE;
-  newlit->u.oper_valeur = valeur;
-  return newlit;
-}
-
-/******************************************************************************/
-
-operande *code3a_new_etiquette(char *nom){
-  operande *newetiq = malloc(sizeof(operande));
-  newetiq->oper_type = O_ETIQUETTE;
-  newetiq->u.oper_nom = malloc(sizeof(char)*102);
-  strcpy(newetiq->u.oper_nom,nom);
-  return newetiq;
-}
-
-/******************************************************************************/
-
-operande *code3a_new_etiquette_auto(){
-  char *result = malloc(sizeof(char)*102);
-  sprintf(result,"e%d",etiq_counter);
-  etiq_counter++;
-  return code3a_new_etiquette(result);
-}
-
-/******************************************************************************/
-
-operande *code3a_new_var(char *nom, int portee, int adresse){
-  operande *newvar = malloc(sizeof(operande));
-  newvar->oper_type = O_VARIABLE;
-  newvar->u.oper_var.oper_nom = malloc(sizeof(char)*102);
-  sprintf(newvar->u.oper_var.oper_nom, "v%s",nom); // préfixer le nom d'un "v"
-  newvar->u.oper_var.oper_portee = portee;
-  newvar->u.oper_var.oper_adresse = adresse;
-  newvar->u.oper_var.oper_indice = NULL;
-  return newvar;
-}
-
+//
+// int etiq_counter = 0;
+//
+//
+// /******************************************************************************/
+//
+// void code3a_init() {
+//   code3a.liste = malloc(code3asize*sizeof(operation_3a));
+//   code3a.next = 0;
+//   desctemp = malloc(desctempsize * sizeof(operande *));
+// }
+//
+// /******************************************************************************/
+//
+// void code3a_ajoute_etiquette(char *etiquette){
+//   if(_next_etiq){
+//     warning_1s("Étiquette précédente ignorée: %s",_next_etiq);
+//   }
+//   // étiquette pas ajoutée à la ligne courante, mais à la prochaine
+//   _next_etiq = etiquette;
+// }
+//
+// /******************************************************************************/
+//
+// void update_lastuse(operande *op_oper1, int is_lvalue) {
+//   if(op_oper1) {
+//     // temporaire en rvalue (utiliser sa valeur pour calculer une autre)
+//     if(op_oper1->oper_type == O_TEMPORAIRE && !is_lvalue) {
+//       int tempnum = op_oper1->u.oper_temp.oper_tempnum;
+//       desctemp[tempnum]->u.oper_temp.last_use = code3a.next;
+//     }
+//     // les indices de tableaux sont des rvalue (utilisation du temporaire)
+//     else if(op_oper1->oper_type == O_VARIABLE){
+//       if(op_oper1->u.oper_var.oper_indice && op_oper1->u.oper_var.oper_indice->oper_type == O_TEMPORAIRE) {
+//         int tempnum = op_oper1->u.oper_var.oper_indice->u.oper_temp.oper_tempnum;
+//         desctemp[tempnum]->u.oper_temp.last_use = code3a.next;
+//       }
+//     }
+//   }
+// }
+//
+// /******************************************************************************/
+//
+// void code3a_ajoute_instruction(instrcode op_code, operande *op_oper1,
+//                                operande *op_oper2, operande *op_result,
+//                                char *comment){
+//   if(code3a.next >= code3asize){
+//     code3asize += CODE_BLOCK_SIZE;
+//     code3a.liste = realloc(code3a.liste,code3asize*sizeof(operation_3a));
+//   }
+//   code3a.liste[code3a.next].op_code = op_code;
+//   code3a.liste[code3a.next].op_oper1 = op_oper1;
+//   code3a.liste[code3a.next].op_oper2 = op_oper2;
+//   code3a.liste[code3a.next].op_result = op_result;
+//   code3a.liste[code3a.next].comment = comment;
+//   if(_next_etiq) { // cette opération est étiquetée
+//     code3a.liste[code3a.next].op_etiq = _next_etiq;
+//     _next_etiq = NULL;
+//   }
+//   else{
+//     code3a.liste[code3a.next].op_etiq = _next_etiq;
+//   }
+//   // mise à jour de last_use pour les temporaires
+//   update_lastuse(op_oper1, 0);
+//   update_lastuse(op_oper2, 0);
+//   update_lastuse(op_result, 1);
+//   code3a.next++;
+// }
+//
+// /******************************************************************************/
+// extern operande *rust_new_temporaire();
+//
+// operande *code3a_new_temporaire(){
+//   return rust_new_temporaire();
+// }
+//
+// /******************************************************************************/
+//
+// operande *code3a_new_constante(int valeur){
+//   operande *newlit = malloc(sizeof(operande));
+//   newlit->oper_type = O_CONSTANTE;
+//   newlit->u.oper_valeur = valeur;
+//   return newlit;
+// }
+//
+// /******************************************************************************/
+//
+// operande *code3a_new_etiquette(char *nom){
+//   operande *newetiq = malloc(sizeof(operande));
+//   newetiq->oper_type = O_ETIQUETTE;
+//   newetiq->u.oper_nom = malloc(sizeof(char)*102);
+//   strcpy(newetiq->u.oper_nom,nom);
+//   return newetiq;
+// }
+//
+// /******************************************************************************/
+//
+// operande *code3a_new_etiquette_auto(){
+//   char *result = malloc(sizeof(char)*102);
+//   sprintf(result,"e%d",etiq_counter);
+//   etiq_counter++;
+//   return code3a_new_etiquette(result);
+// }
+//
+// /******************************************************************************/
+//
+// operande *code3a_new_var(char *nom, int portee, int adresse){
+//   operande *newvar = malloc(sizeof(operande));
+//   newvar->oper_type = O_VARIABLE;
+//   newvar->u.oper_var.oper_nom = malloc(sizeof(char)*102);
+//   sprintf(newvar->u.oper_var.oper_nom, "v%s",nom); // préfixer le nom d'un "v"
+//   newvar->u.oper_var.oper_portee = portee;
+//   newvar->u.oper_var.oper_adresse = adresse;
+//   newvar->u.oper_var.oper_indice = NULL;
+//   return newvar;
+// }
+//
 /******************************************************************************/
 
 void _code3a_affiche_operande(operande *oper, int affiche_last_use){
@@ -254,12 +254,12 @@ void code3a_affiche_ligne_code(operation_3a *i_oper){
 }
 
 /******************************************************************************/
-
-void code3a_affiche_code(){
-  int i_ligne;
-  for(i_ligne=0;i_ligne<code3a.next;i_ligne++){
-    printf("%04d",i_ligne);
-    code3a_affiche_ligne_code(&code3a.liste[i_ligne]);
-    printf("\n");
-  }
-}
+//
+// void code3a_affiche_code(){
+//   int i_ligne;
+//   for(i_ligne=0;i_ligne<code3a.next;i_ligne++){
+//     printf("%04d",i_ligne);
+//     code3a_affiche_ligne_code(&code3a.liste[i_ligne]);
+//     printf("\n");
+//   }
+// }
