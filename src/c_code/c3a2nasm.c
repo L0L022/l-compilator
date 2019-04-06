@@ -393,6 +393,7 @@ void c3a2nasm_jump(char *opcode, operande *oper1, operande *oper2, operande *cib
 
 void c3a2nasm_appel(operande *foncname, operande *result){
   _nasm_instr("call", foncname->u.oper_nom, NULL, NULL, NULL);
+  nbparam = rust_function_nb_arguments(&foncname->u.oper_nom[1]);
   if(nbparam != 0) { // desallouer les arguments
     printf("\tadd\tesp, %d\t\t; desallocation parametres\n", 4 * nbparam);
     nbparam = 0;
