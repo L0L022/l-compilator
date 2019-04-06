@@ -421,7 +421,7 @@ impl Gen<CTV> for ast::Expression {
                             kind: InstructionKind::JumpIf {
                                 condition: JumpIfCondition::Equal,
                                 left,
-                                right: Constant::new(false).into(),
+                                right: Constant::new(true).into(),
                                 label: l_end.clone(),
                             },
                             comment: None,
