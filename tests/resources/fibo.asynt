@@ -1,8 +1,15 @@
 <prog>
   <l_dec>
+  </l_dec>
+  <l_dec>
     <foncDec>
+      fibo
       <l_dec>
         <varDec>$n</varDec>
+        <l_dec>
+        </l_dec>
+      </l_dec>
+      <l_dec>
       </l_dec>
       <l_instr>
         <instr_si>
@@ -62,6 +69,11 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        main
+        <l_dec>
+        </l_dec>
+        <l_dec>
+        </l_dec>
         <l_instr>
           <instr_ecrire>
             <appelExp>
@@ -78,6 +90,8 @@
           </instr_ecrire>
         </l_instr>
       </foncDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
 </prog>

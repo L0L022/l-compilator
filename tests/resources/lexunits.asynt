@@ -15,6 +15,8 @@
                 <varDec>$f</varDec>
                 <l_dec>
                   <varDec>$_</varDec>
+                  <l_dec>
+                  </l_dec>
                 </l_dec>
               </l_dec>
             </l_dec>
@@ -25,8 +27,11 @@
   </l_dec>
   <l_dec>
     <foncDec>
+      f
       <l_dec>
         <varDec>$$</varDec>
+        <l_dec>
+        </l_dec>
       </l_dec>
       <l_dec>
         <varDec>$$$</varDec>
@@ -34,6 +39,8 @@
           <varDec>$f</varDec>
           <l_dec>
             <varDec>$_</varDec>
+            <l_dec>
+            </l_dec>
           </l_dec>
         </l_dec>
       </l_dec>
@@ -67,6 +74,11 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        main
+        <l_dec>
+        </l_dec>
+        <l_dec>
+        </l_dec>
         <l_instr>
           <instr_affect>
             <var_simple>$t0</var_simple>
@@ -100,6 +112,8 @@
           </l_instr>
         </l_instr>
       </foncDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
 </prog>

@@ -3,18 +3,25 @@
     <varDec>$a</varDec>
     <l_dec>
       <varDec>$b</varDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
   <l_dec>
     <foncDec>
+      pgcd
       <l_dec>
         <varDec>$a</varDec>
         <l_dec>
           <varDec>$b</varDec>
+          <l_dec>
+          </l_dec>
         </l_dec>
       </l_dec>
       <l_dec>
         <varDec>$c</varDec>
+        <l_dec>
+        </l_dec>
       </l_dec>
       <l_instr>
         <instr_affect>
@@ -84,6 +91,11 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        main
+        <l_dec>
+        </l_dec>
+        <l_dec>
+        </l_dec>
         <l_instr>
           <instr_affect>
             <var_simple>$a</var_simple>
@@ -154,6 +166,8 @@
           </l_instr>
         </l_instr>
       </foncDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
 </prog>

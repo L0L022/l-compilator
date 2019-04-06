@@ -3,10 +3,17 @@
     <varDec>$i</varDec>
     <l_dec>
       <varDec>$carre</varDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
   <l_dec>
     <foncDec>
+      main
+      <l_dec>
+      </l_dec>
+      <l_dec>
+      </l_dec>
       <l_instr>
         <instr_affect>
           <var_simple>$i</var_simple>
@@ -58,5 +65,7 @@
         </l_instr>
       </l_instr>
     </foncDec>
+    <l_dec>
+    </l_dec>
   </l_dec>
 </prog>

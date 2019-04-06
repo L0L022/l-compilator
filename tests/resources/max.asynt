@@ -1,11 +1,18 @@
 <prog>
   <l_dec>
+  </l_dec>
+  <l_dec>
     <foncDec>
+      max
       <l_dec>
         <varDec>$a</varDec>
         <l_dec>
           <varDec>$b</varDec>
+          <l_dec>
+          </l_dec>
         </l_dec>
+      </l_dec>
+      <l_dec>
       </l_dec>
       <l_instr>
         <instr_si>
@@ -37,10 +44,15 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        main
+        <l_dec>
+        </l_dec>
         <l_dec>
           <varDec>$v_1</varDec>
           <l_dec>
             <varDec>$v_2</varDec>
+            <l_dec>
+            </l_dec>
           </l_dec>
         </l_dec>
         <l_instr>
@@ -99,6 +111,8 @@
           </l_instr>
         </l_instr>
       </foncDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
 </prog>

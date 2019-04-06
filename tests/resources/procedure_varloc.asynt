@@ -1,8 +1,15 @@
 <prog>
   <l_dec>
+  </l_dec>
+  <l_dec>
     <foncDec>
+      procedure
+      <l_dec>
+      </l_dec>
       <l_dec>
         <varDec>$a</varDec>
+        <l_dec>
+        </l_dec>
       </l_dec>
       <l_instr>
         <instr_affect>
@@ -20,6 +27,11 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        main
+        <l_dec>
+        </l_dec>
+        <l_dec>
+        </l_dec>
         <l_instr>
           <instr_appel>
             <appel>
@@ -30,6 +42,8 @@
           </instr_appel>
         </l_instr>
       </foncDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
 </prog>

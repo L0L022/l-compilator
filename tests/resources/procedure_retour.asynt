@@ -1,6 +1,13 @@
 <prog>
   <l_dec>
+  </l_dec>
+  <l_dec>
     <foncDec>
+      procedure
+      <l_dec>
+      </l_dec>
+      <l_dec>
+      </l_dec>
       <l_instr>
         <instr_retour>
           <intExp>1</intExp>
@@ -9,6 +16,11 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        main
+        <l_dec>
+        </l_dec>
+        <l_dec>
+        </l_dec>
         <l_instr>
           <instr_ecrire>
             <appelExp>
@@ -21,6 +33,8 @@
           </instr_ecrire>
         </l_instr>
       </foncDec>
+      <l_dec>
+      </l_dec>
     </l_dec>
   </l_dec>
 </prog>

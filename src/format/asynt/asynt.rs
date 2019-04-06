@@ -66,10 +66,6 @@ impl<'a, 'b: 'a, I: Iterator<Item = &'b Statement> + Clone> Asynt for &'a I {
         "l_dec"
     }
 
-    fn hide(&self) -> bool {
-        (*self).clone().next().is_none()
-    }
-
     fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         let mut it: I = (*self).clone();
 
@@ -107,7 +103,10 @@ impl Asynt for Statement {
 
         match self {
             DclVariable(v) => v.to_asynt(f, indent),
-            DclFunction(_, p, v, i) => {
+            DclFunction(id, p, v, i) => {
+                let spaces = " ".repeat(indent);
+                writeln!(f, "{}{}", spaces, id)?;
+
                 p.to_asynt(f, indent)?;
                 v.to_asynt(f, indent)?;
                 i.to_asynt(f, indent)
@@ -121,14 +120,9 @@ impl Asynt for [Scalar] {
         "l_dec"
     }
 
-    fn hide(&self) -> bool {
-        self.is_empty()
-    }
-
     fn content(&self, f: &mut dyn Write, indent: usize) -> Result<()> {
         match self.len() {
             0 => Ok(()),
-            1 => self[0].to_asynt(f, indent),
             _ => {
                 self[0].to_asynt(f, indent)?;
                 self[1..].to_asynt(f, indent)

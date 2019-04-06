@@ -32,7 +32,8 @@ impl ThreeA for Label {
 
 impl ThreeA for Temp {
     fn three_a(&self, f: &mut dyn Write) -> io::Result<()> {
-        write!(f, "t{}{{{}}}", self.temp(), self.last_use())
+        write!(f, "t{}", self.temp())
+        // write!(f, "t{}{{{}}}", self.temp(), self.last_use())
     }
 }
 
@@ -46,7 +47,7 @@ impl ThreeA for Variable {
             write!(f, "]")?;
         }
 
-        write!(f, "({})", self.address())?;
+        // write!(f, "({})", self.address())?;
 
         Ok(())
     }
@@ -83,7 +84,7 @@ impl ThreeA for CT {
 impl ThreeA for Instruction {
     fn three_a(&self, f: &mut dyn Write) -> io::Result<()> {
         match &self.label {
-            Some(label) => write!(f, " >{:8}", label.label())?,
+            Some(label) => write!(f, " >{:>8}", label.label())?,
             None => write!(f, "{:10}", "")?,
         }
         write!(f, " : ")?;

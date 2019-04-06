@@ -1,11 +1,18 @@
 <prog>
   <l_dec>
+  </l_dec>
+  <l_dec>
     <foncDec>
+      add
       <l_dec>
         <varDec>$a</varDec>
         <l_dec>
           <varDec>$b</varDec>
+          <l_dec>
+          </l_dec>
         </l_dec>
+      </l_dec>
+      <l_dec>
       </l_dec>
       <l_instr>
         <instr_retour>
@@ -23,11 +30,16 @@
     </foncDec>
     <l_dec>
       <foncDec>
+        mult
         <l_dec>
           <varDec>$a</varDec>
           <l_dec>
             <varDec>$b</varDec>
+            <l_dec>
+            </l_dec>
           </l_dec>
+        </l_dec>
+        <l_dec>
         </l_dec>
         <l_instr>
           <instr_retour>
@@ -45,12 +57,17 @@
       </foncDec>
       <l_dec>
         <foncDec>
+          main
+          <l_dec>
+          </l_dec>
           <l_dec>
             <varDec>$x</varDec>
             <l_dec>
               <varDec>$y</varDec>
               <l_dec>
                 <varDec>$op</varDec>
+                <l_dec>
+                </l_dec>
               </l_dec>
             </l_dec>
           </l_dec>
@@ -129,6 +146,8 @@
             </l_instr>
           </l_instr>
         </foncDec>
+        <l_dec>
+        </l_dec>
       </l_dec>
     </l_dec>
   </l_dec>

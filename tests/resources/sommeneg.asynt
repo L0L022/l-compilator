@@ -1,6 +1,13 @@
 <prog>
   <l_dec>
+  </l_dec>
+  <l_dec>
     <foncDec>
+      main
+      <l_dec>
+      </l_dec>
+      <l_dec>
+      </l_dec>
       <l_instr>
         <instr_ecrire>
           <opExp>
@@ -17,5 +24,7 @@
         </instr_ecrire>
       </l_instr>
     </foncDec>
+    <l_dec>
+    </l_dec>
   </l_dec>
 </prog>

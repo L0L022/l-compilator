@@ -1,9 +1,16 @@
 <prog>
   <l_dec>
     <tabDec>$tab[10]</tabDec>
+    <l_dec>
+    </l_dec>
   </l_dec>
   <l_dec>
     <foncDec>
+      main
+      <l_dec>
+      </l_dec>
+      <l_dec>
+      </l_dec>
       <l_instr>
         <instr_affect>
           <var_indicee>
@@ -24,5 +31,7 @@
         </l_instr>
       </l_instr>
     </foncDec>
+    <l_dec>
+    </l_dec>
   </l_dec>
 </prog>

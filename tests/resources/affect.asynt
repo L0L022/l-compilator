@@ -1,9 +1,16 @@
 <prog>
   <l_dec>
     <varDec>$a</varDec>
+    <l_dec>
+    </l_dec>
   </l_dec>
   <l_dec>
     <foncDec>
+      main
+      <l_dec>
+      </l_dec>
+      <l_dec>
+      </l_dec>
       <l_instr>
         <instr_affect>
           <var_simple>$a</var_simple>
@@ -11,5 +18,7 @@
         </instr_affect>
       </l_instr>
     </foncDec>
+    <l_dec>
+    </l_dec>
   </l_dec>
 </prog>
