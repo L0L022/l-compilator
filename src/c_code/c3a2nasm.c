@@ -139,7 +139,7 @@ char *varconst2nasm(operande *oper){
     else{
       int adresse = oper->u.oper_var.oper_adresse;
       if (oper->u.oper_var.oper_portee == P_VARIABLE_LOCALE){
-        sprintf(result,"dword [ebp - %d]", 4 + adresse );
+        sprintf(result,"dword [ebp - %d]", 4 + 4 * 4 + adresse );
       }
       else{ // P_ARGUMENT
         sprintf(result,"dword [ebp + %d]", 4 + 4 * (arguments) - adresse);
@@ -302,6 +302,10 @@ void c3a2nasm_finfonction(int varlocs){
     printf("\tadd\tesp, %d", varlocs);
     _nasm_comment("desallocation variables locales");
   }
+  _nasm_instr("pop", "edx", NULL, NULL, NULL);
+  _nasm_instr("pop", "ecx", NULL, NULL, NULL);
+  _nasm_instr("pop", "ebx", NULL, NULL, NULL);
+  _nasm_instr("pop", "eax", NULL, NULL, NULL);
   _nasm_instr("pop", "ebp", NULL, NULL, "restaure la valeur de ebp") ;
   _nasm_instr("ret", NULL, NULL, NULL, NULL);
   rust_function_exit();
@@ -327,6 +331,10 @@ void c3a2nasm_debutfonction(char *nomfonction){
   arguments = rust_function_nb_arguments(nomfonction);
   _nasm_instr("push", "ebp", NULL, NULL, "sauvegarde la valeur de ebp") ;
   _nasm_instr("mov", "ebp", "esp", NULL, "nouvelle valeur de ebp");
+  _nasm_instr("push", "eax", NULL, NULL, NULL);
+  _nasm_instr("push", "ebx", NULL, NULL, NULL);
+  _nasm_instr("push", "ecx", NULL, NULL, NULL);
+  _nasm_instr("push", "edx", NULL, NULL, NULL);
 }
 
 /******************************************************************************/
