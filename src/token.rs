@@ -21,6 +21,7 @@ pub enum Token {
     Else,
     While,
     Do,
+    For,
 
     // Brackets
     OpenParenthesis,

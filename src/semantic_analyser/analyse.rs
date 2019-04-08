@@ -12,12 +12,14 @@ pub struct Error {
 }
 
 mod diagnostic {
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub enum Diagnostic {
         Error(Error),
         Warning(Warning),
     }
 
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub enum Error {
         AlreadyDeclared,
@@ -29,6 +31,7 @@ mod diagnostic {
         MainUndeclared,
     }
 
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub enum Warning {
         VariableShadowing,
@@ -241,6 +244,12 @@ impl Analyse for Instruction {
             While(e, i) => {
                 e.analyse(d);
                 i.analyse(d);
+            }
+            For(i1, e, i2, i3) => {
+                i1.analyse(d);
+                e.analyse(d);
+                i2.analyse(d);
+                i3.analyse(d);
             }
             WriteFunction(e) => {
                 e.analyse(d);

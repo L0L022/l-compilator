@@ -46,6 +46,7 @@ pub enum Instruction {
     Return(Expression),
     If(Expression, Instructions, Instructions),
     While(Expression, Instructions),
+    For(Box<Instruction>, Expression, Box<Instruction>, Instructions),
     WriteFunction(Expression),
     NOP,
 }

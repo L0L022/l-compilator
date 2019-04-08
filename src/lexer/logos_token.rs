@@ -56,6 +56,9 @@ pub enum LogosToken {
     #[token = "faire"]
     Do,
 
+    #[token = "pour"]
+    For,
+
     // Brackets
     #[token = "("]
     OpenParenthesis,
@@ -126,6 +129,7 @@ impl LogosToken {
             Else => T::Else,
             While => T::While,
             Do => T::Do,
+            For => T::For,
             OpenParenthesis => T::OpenParenthesis,
             CloseParenthesis => T::CloseParenthesis,
             OpenCurlyBracket => T::OpenCurlyBracket,

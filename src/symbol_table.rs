@@ -49,13 +49,6 @@ impl Table {
             symbols: Vec::new(),
         }
     }
-
-    pub fn with_parent(parent: usize) -> Self {
-        Self {
-            parent: Some(parent),
-            symbols: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug)]

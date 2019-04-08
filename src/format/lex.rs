@@ -28,9 +28,8 @@ impl Token {
         let name = match self {
             Number(_) => "nombre",
             Id(_) => "identificateur",
-            IntegerType | ReadFunction | WriteFunction | Return | If | Then | Else | While | Do => {
-                "mot_clef"
-            }
+            IntegerType | ReadFunction | WriteFunction | Return | If | Then | Else | While | Do
+            | For => "mot_clef",
             Comma | Semicolon | OpenParenthesis | CloseParenthesis | OpenCurlyBracket
             | CloseCurlyBracket | OpenSquareBracket | CloseSquareBracket | Addition
             | Subtraction | Multiplication | Division | LessThan | Equal | And | Or | Not => {
@@ -68,6 +67,7 @@ impl Token {
             Else => "sinon",
             While => "tantque",
             Do => "faire",
+            For => "pour",
 
             // Brackets
             OpenParenthesis => "PARENTHESE_OUVRANTE",

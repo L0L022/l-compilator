@@ -205,6 +205,7 @@ impl Asynt for Instruction {
             Return(..) => "instr_retour",
             If(..) => "instr_si",
             While(..) => "instr_tantque",
+            For(..) => "instr_pour",
             WriteFunction(..) => "instr_ecrire",
             NOP => unreachable!(),
         }
@@ -237,6 +238,12 @@ impl Asynt for Instruction {
             While(e, i) => {
                 e.to_asynt(f, indent)?;
                 i.to_asynt(f, indent)
+            }
+            For(i1, e, i2, i3) => {
+                i1.to_asynt(f, indent)?;
+                e.to_asynt(f, indent)?;
+                i3.to_asynt(f, indent)?;
+                i2.to_asynt(f, indent)
             }
             WriteFunction(e) => e.to_asynt(f, indent),
             NOP => unreachable!(),

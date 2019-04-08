@@ -40,14 +40,17 @@ Scalar : Scalar = Type Id => (<>);
 Vector : Vector = <t:Type> <i:Id> "[" <o:Number> "]" => (t, o, i);
 
 Instruction : Instruction = {
-    <LeftValue> "=" <Expression> ";" => Instruction::Affectation(<>),
+    Affectation,
     Return <Expression> ";" => Instruction::Return(<>),
     If <e:Expression> Then "{" <i1:Instruction*> "}" <i2:(Else "{" <Instruction*> "}")?> => Instruction::If(e, i1, i2.unwrap_or(Vec::new())),
     While <Expression> Do "{" <Instruction*> "}" => Instruction::While(<>),
+    For <i1:Affectation> <e:Expression> ";" <i2:Affectation> Do "{" <i3:Instruction*> "}" => Instruction::For(Box::new(i1), e, Box::new(i2), i3),
     WriteFunction "(" <Expression> ")" ";" => Instruction::WriteFunction(<>),
     <CallFunction> ";" => Instruction::CallFunction(<>),
     ";" => Instruction::NOP,
 };
+
+Affectation : Instruction = <LeftValue> "=" <Expression> ";" => Instruction::Affectation(<>);
 
 Expression = ExpressionL1;
 
@@ -160,6 +163,7 @@ extern {
         Else => T::Else,
         While => T::While,
         Do => T::Do,
+        For => T::For,
 
         // Brackets
 

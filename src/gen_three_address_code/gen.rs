@@ -197,7 +197,7 @@ impl Gen<()> for ast::Statement {
 
         match self {
             DclVariable(v) => v.gen(d),
-            DclFunction(id, args, vars, instructions) => {
+            DclFunction(id, _, vars, instructions) => {
                 d.enter_function(id);
 
                 d.add_instr(Instruction {
@@ -359,6 +359,40 @@ impl Gen<()> for ast::Instruction {
                     label: Some(l_end),
                     kind: InstructionKind::NOP,
                     comment: Some("fin tantque".to_owned()),
+                });
+            }
+            For(i1, e, i2, i3) => {
+                let l_begin = d.new_label();
+                let l_end = d.new_label();
+
+                i1.gen(d);
+                d.add_instr(Instruction {
+                    label: Some(l_begin.clone()),
+                    kind: InstructionKind::NOP,
+                    comment: Some(format!("pour {}", e)),
+                });
+                let left = e.gen(d);
+                d.add_instr(Instruction {
+                    label: None,
+                    kind: InstructionKind::JumpIf {
+                        condition: JumpIfCondition::Equal,
+                        left,
+                        right: Constant::new(false).into(),
+                        label: l_end.clone(),
+                    },
+                    comment: Some("sort pour".to_owned()),
+                });
+                i3.gen(d);
+                i2.gen(d);
+                d.add_instr(Instruction {
+                    label: None,
+                    kind: InstructionKind::Jump { label: l_begin },
+                    comment: None,
+                });
+                d.add_instr(Instruction {
+                    label: Some(l_end),
+                    kind: InstructionKind::NOP,
+                    comment: Some("fin pour".to_owned()),
                 });
             }
             WriteFunction(e) => {
